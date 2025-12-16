@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,10 +10,11 @@
     <!-- JSZip Library for ZIP Archive Export/Import -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
+
 <body>
     <!-- App Container -->
     <div class="app-container">
-        
+
         <!-- Sidebar Navigation -->
         <aside class="sidebar" role="navigation" aria-label="Main navigation">
             <div class="sidebar-header">
@@ -21,7 +23,7 @@
                     <img src="icons/theme/moon.svg" alt="" class="theme-icon" width="24" height="24">
                 </button>
             </div>
-            
+
             <!-- Project Selector -->
             <div class="project-selector-container">
                 <select id="projectSelector" class="project-selector" aria-label="Select project">
@@ -31,7 +33,7 @@
                     <img src="icons/navigation/settings.svg" alt="" width="20" height="20">
                 </button>
             </div>
-            
+
             <nav class="nav-menu">
                 <ul class="nav-list">
                     <li>
@@ -88,17 +90,19 @@
 
         <!-- Main Content Area -->
         <main class="main-content" role="main">
-            
+
             <!-- Global Search Bar -->
             <div class="global-search">
                 <div class="search-container">
                     <div class="search-input-wrapper">
-                        <input type="text" id="searchInput" class="search-input" placeholder="Search across all sections..." aria-label="Search">
+                        <input type="text" id="searchInput" class="search-input"
+                            placeholder="Search across all sections..." aria-label="Search">
                         <button id="clearSearchBtn" class="search-clear-btn" aria-label="Clear search">×</button>
                     </div>
                 </div>
                 <div class="data-actions">
-                    <button class="btn btn-secondary" id="exportDocumentationBtn" title="Export formatted documentation as HTML">
+                    <button class="btn btn-secondary" id="exportDocumentationBtn"
+                        title="Export formatted documentation as HTML">
                         <img src="icons/actions/export.svg" alt="" width="16" height="16">
                         <span>Export Docs</span>
                     </button>
@@ -117,17 +121,17 @@
                     <input type="file" id="importFileInput" accept=".zip,.json" style="display: none;">
                 </div>
             </div>
-            
+
             <!-- Search Results -->
             <div id="searchResults" class="search-results" style="display: none;"></div>
-            
+
             <!-- Dashboard Section -->
             <section id="dashboard" class="content-section active">
                 <header class="section-header">
                     <h2>Dashboard</h2>
                     <p class="section-description">Overview of your game development project</p>
                 </header>
-                
+
                 <div class="dashboard-grid">
                     <div class="stat-card">
                         <img src="icons/navigation/tasks.svg" alt="" class="stat-icon" width="32" height="32">
@@ -136,7 +140,7 @@
                             <p class="stat-value" id="activeTasks">0</p>
                         </div>
                     </div>
-                    
+
                     <div class="stat-card">
                         <img src="icons/navigation/assets.svg" alt="" class="stat-icon" width="32" height="32">
                         <div class="stat-content">
@@ -144,7 +148,7 @@
                             <p class="stat-value" id="totalAssets">0</p>
                         </div>
                     </div>
-                    
+
                     <div class="stat-card">
                         <img src="icons/navigation/milestones.svg" alt="" class="stat-icon" width="32" height="32">
                         <div class="stat-content">
@@ -152,7 +156,7 @@
                             <p class="stat-value" id="totalMilestones">0</p>
                         </div>
                     </div>
-                    
+
                     <div class="stat-card">
                         <img src="icons/navigation/notes.svg" alt="" class="stat-icon" width="32" height="32">
                         <div class="stat-content">
@@ -160,8 +164,9 @@
                             <p class="stat-value" id="totalNotes">0</p>
                         </div>
                     </div>
-                    
-                    <div class="stat-card reminder-widget" id="reminderWidget" onclick="Navigation.navigateTo('notes')" style="cursor: pointer;">
+
+                    <div class="stat-card reminder-widget" id="reminderWidget" onclick="Navigation.navigateTo('notes')"
+                        style="cursor: pointer;">
                         <img src="icons/misc/clock.svg" alt="" class="stat-icon" width="32" height="32">
                         <div class="stat-content">
                             <h3 class="stat-label">Upcoming Reminders</h3>
@@ -178,7 +183,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="stat-card">
                         <img src="icons/misc/progress.svg" alt="" class="stat-icon" width="32" height="32">
                         <div class="stat-content">
@@ -187,22 +192,22 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="dashboard-overview">
                     <div class="overview-card">
                         <h3>Recent Tasks</h3>
                         <ul id="recentTasksList" class="overview-list"></ul>
                     </div>
-                    
+
                     <div class="overview-card">
                         <h3>Upcoming Milestones</h3>
                         <ul id="upcomingMilestonesList" class="overview-list"></ul>
                     </div>
-                    
+
                     <div class="overview-card" id="productivityStats">
                         <h3>Productivity Overview</h3>
                     </div>
-                    
+
                     <div class="overview-card calendar-card" id="reminderCalendar">
                         <div class="calendar-header">
                             <h3>Reminder Calendar</h3>
@@ -227,7 +232,7 @@
                     <h2>Tasks</h2>
                     <button class="btn btn-primary" id="addTaskBtn">+ Add Task</button>
                 </header>
-                
+
                 <div class="task-controls">
                     <div class="filters">
                         <button class="filter-btn active" data-filter="all">All</button>
@@ -244,7 +249,7 @@
                         </select>
                     </div>
                 </div>
-                
+
                 <div id="tasksList" class="items-container"></div>
             </section>
 
@@ -257,7 +262,7 @@
                         <button class="btn btn-primary" id="addAssetBtn">+ Add Asset</button>
                     </div>
                 </header>
-                
+
                 <div class="filters">
                     <button class="filter-btn active" data-filter="all">All</button>
                     <button class="filter-btn" data-filter="image">Images</button>
@@ -268,7 +273,7 @@
                     <button class="filter-btn" data-filter="script">Scripts</button>
                     <button class="filter-btn" data-filter="other">Other</button>
                 </div>
-                
+
                 <div id="assetsList" class="items-container"></div>
             </section>
 
@@ -278,7 +283,7 @@
                     <h2>Milestones</h2>
                     <button class="btn btn-primary" id="addMilestoneBtn">+ Add Milestone</button>
                 </header>
-                
+
                 <div id="milestonesList" class="milestones-container"></div>
             </section>
 
@@ -287,40 +292,49 @@
                 <header class="section-header">
                     <h2>Classes & Objects</h2>
                     <div class="section-header-actions">
-                        <button class="btn btn-secondary" id="classesBulkModeBtn" onclick="BulkOperations.toggleBulkMode('classes')">
-                            <img src="icons/misc/checklist.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <button class="btn btn-secondary" id="classesBulkModeBtn"
+                            onclick="BulkOperations.toggleBulkMode('classes')">
+                            <img src="icons/misc/checklist.svg" alt="" width="16" height="16"
+                                style="vertical-align: middle; margin-right: 4px;">
                             <span>Bulk Edit</span>
                         </button>
-                        <button class="btn btn-secondary" id="browseClassTemplatesBtn" onclick="TemplateManager.openTemplateBrowser('class')">
-                            <img src="icons/misc/book-library.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <button class="btn btn-secondary" id="browseClassTemplatesBtn"
+                            onclick="TemplateManager.openTemplateBrowser('class')">
+                            <img src="icons/misc/book-library.svg" alt="" width="16" height="16"
+                                style="vertical-align: middle; margin-right: 4px;">
                             <span>Templates</span>
                         </button>
                         <button class="btn btn-accent" id="compareClassesBtn">
-                            <img src="icons/misc/scales-balance.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                            <img src="icons/misc/scales-balance.svg" alt="" width="16" height="16"
+                                style="vertical-align: middle; margin-right: 4px;">
                             Compare Classes
                         </button>
                         <button class="btn btn-secondary" id="balanceTestBtn">
-                            <img src="icons/misc/scales-balance.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                            <img src="icons/misc/scales-balance.svg" alt="" width="16" height="16"
+                                style="vertical-align: middle; margin-right: 4px;">
                             Balance Test
                         </button>
                         <button class="btn btn-primary" id="addClassBtn">+ Add Class</button>
                     </div>
                 </header>
-                
+
                 <div class="class-filter-bar">
                     <label>Show:</label>
                     <button class="class-filter-btn active" id="classFilterAll">All Classes</button>
                     <button class="class-filter-btn" id="classFilterCharacter">
-                        <img src="icons/misc/user.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <img src="icons/misc/user.svg" alt="" width="16" height="16"
+                            style="vertical-align: middle; margin-right: 4px;">
                         Character Classes
                     </button>
                     <button class="class-filter-btn" id="classFilterInstance">
-                        <img src="icons/navigation/mechanics.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <img src="icons/navigation/mechanics.svg" alt="" width="16" height="16"
+                            style="vertical-align: middle; margin-right: 4px;">
                         Instance Classes
                     </button>
                 </div>
-                <p class="section-description">Define your game's class hierarchy with parent and child relationships</p>
-                
+                <p class="section-description">Define your game's class hierarchy with parent and child relationships
+                </p>
+
                 <div id="classesList" class="classes-container"></div>
             </section>
 
@@ -329,19 +343,23 @@
                 <header class="section-header">
                     <h2>Game Mechanics</h2>
                     <div class="section-header-actions">
-                        <button class="btn btn-secondary" id="mechanicsBulkModeBtn" onclick="BulkOperations.toggleBulkMode('mechanics')">
-                            <img src="icons/misc/checklist.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <button class="btn btn-secondary" id="mechanicsBulkModeBtn"
+                            onclick="BulkOperations.toggleBulkMode('mechanics')">
+                            <img src="icons/misc/checklist.svg" alt="" width="16" height="16"
+                                style="vertical-align: middle; margin-right: 4px;">
                             <span>Bulk Edit</span>
                         </button>
-                        <button class="btn btn-secondary" id="browseMechanicTemplatesBtn" onclick="TemplateManager.openTemplateBrowser('mechanic')">
-                            <img src="icons/misc/book-library.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <button class="btn btn-secondary" id="browseMechanicTemplatesBtn"
+                            onclick="TemplateManager.openTemplateBrowser('mechanic')">
+                            <img src="icons/misc/book-library.svg" alt="" width="16" height="16"
+                                style="vertical-align: middle; margin-right: 4px;">
                             <span>Templates</span>
                         </button>
                         <button class="btn btn-primary" id="addMechanicBtn">+ Add Mechanic</button>
                     </div>
                 </header>
                 <p class="section-description">Document your game's mechanics and systems</p>
-                
+
                 <div class="mechanics-filters">
                     <div class="filter-group">
                         <label>Category:</label>
@@ -400,7 +418,7 @@
                     </div>
                     <button class="btn btn-small btn-secondary" id="mechanicsClearFilters">Clear Filters</button>
                 </div>
-                
+
                 <div id="mechanicsList" class="mechanics-container"></div>
             </section>
 
@@ -415,7 +433,7 @@
                     </div>
                 </header>
                 <p class="section-description">Organize your game's narrative into acts and scenes</p>
-                
+
                 <!-- Story View Tabs -->
                 <div class="story-tabs">
                     <button class="story-tab active" data-view="list">
@@ -444,12 +462,12 @@
                         <img src="icons/misc/more.svg" alt="" width="20" height="20"> Conflicts & Themes
                     </button>
                 </div>
-                
+
                 <!-- List View (existing) -->
                 <div id="storyListView" class="story-view active">
                     <div id="storyList" class="story-container"></div>
                 </div>
-                
+
                 <!-- Map View (new) -->
                 <div id="storyMapView" class="story-view">
                     <div class="story-map-toolbar">
@@ -491,10 +509,10 @@
                             </select>
                         </div>
                     </div>
-                    
-                    
+
+
                 </div>
-                
+
                 <!-- Characters View -->
                 <div id="storyCharactersView" class="story-view">
                     <div class="story-view-header">
@@ -513,7 +531,7 @@
                     </div>
                     <div id="charactersList" class="characters-grid"></div>
                 </div>
-                
+
                 <!-- Locations View -->
                 <div id="storyLocationsView" class="story-view">
                     <div class="story-view-header">
@@ -531,7 +549,7 @@
                     </div>
                     <div id="locationsList" class="locations-grid"></div>
                 </div>
-                
+
                 <!-- Timeline View -->
                 <div id="storyTimelineView" class="story-view">
                     <div class="story-view-header">
@@ -547,7 +565,7 @@
                     </div>
                     <div id="timelineContainer" class="timeline-container"></div>
                 </div>
-                
+
                 <!-- Items View -->
                 <div id="storyItemsView" class="story-view">
                     <div class="story-view-header">
@@ -582,7 +600,7 @@
                         </table>
                     </div>
                 </div>
-                
+
                 <!-- Quests View -->
                 <div id="storyQuestsView" class="story-view">
                     <div class="story-view-header">
@@ -605,12 +623,13 @@
                                 <option value="completed">Completed</option>
                                 <option value="failed">Failed</option>
                             </select>
-                            <input type="text" id="questsSearchInput" placeholder="Search quests..." class="search-input">
+                            <input type="text" id="questsSearchInput" placeholder="Search quests..."
+                                class="search-input">
                         </div>
                     </div>
                     <div id="questsContainer" class="quests-container"></div>
                 </div>
-                
+
                 <!-- Conflicts & Themes View -->
                 <div id="storyOtherView" class="story-view">
                     <div class="story-other-grid">
@@ -623,7 +642,7 @@
                             </div>
                             <div id="conflictsList" class="conflicts-list"></div>
                         </div>
-                        
+
                         <div class="story-other-section">
                             <div class="story-view-header">
                                 <h3>Themes</h3>
@@ -647,7 +666,7 @@
                         </button>
                     </div>
                 </header>
-                
+
                 <!-- Notes Toolbar -->
                 <div class="notes-toolbar">
                     <div class="notes-search-bar">
@@ -676,7 +695,7 @@
                         </button>
                     </div>
                 </div>
-                
+
                 <!-- Notes Container -->
                 <div id="notesContainer" class="notes-grid"></div>
             </section>
@@ -717,12 +736,13 @@
     <div class="power-calculator-modal" id="powerCalculatorModal">
         <div class="calculator-header">
             <h3>
-                <img src="icons/misc/calculator.svg" alt="" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
+                <img src="icons/misc/calculator.svg" alt="" width="20" height="20"
+                    style="vertical-align: middle; margin-right: 8px;">
                 Calculator
             </h3>
             <button class="calculator-close" id="calculatorCloseBtn">&times;</button>
         </div>
-        
+
         <!-- Calculator Mode Tabs -->
         <div class="calculator-tabs">
             <button class="calculator-tab active" data-mode="basic">
@@ -746,7 +766,7 @@
                 <span>Dice</span>
             </button>
         </div>
-        
+
         <div class="calculator-body">
             <!-- Basic Calculator Mode -->
             <div class="calculator-mode active" id="basicCalculatorMode">
@@ -759,22 +779,22 @@
                         <button class="calc-btn calc-operator" data-action="delete">⌫</button>
                         <button class="calc-btn calc-operator" data-action="percent">%</button>
                         <button class="calc-btn calc-operator" data-action="divide">÷</button>
-                        
+
                         <button class="calc-btn calc-number" data-value="7">7</button>
                         <button class="calc-btn calc-number" data-value="8">8</button>
                         <button class="calc-btn calc-number" data-value="9">9</button>
                         <button class="calc-btn calc-operator" data-action="multiply">×</button>
-                        
+
                         <button class="calc-btn calc-number" data-value="4">4</button>
                         <button class="calc-btn calc-number" data-value="5">5</button>
                         <button class="calc-btn calc-number" data-value="6">6</button>
                         <button class="calc-btn calc-operator" data-action="subtract">−</button>
-                        
+
                         <button class="calc-btn calc-number" data-value="1">1</button>
                         <button class="calc-btn calc-number" data-value="2">2</button>
                         <button class="calc-btn calc-number" data-value="3">3</button>
                         <button class="calc-btn calc-operator" data-action="add">+</button>
-                        
+
                         <button class="calc-btn calc-number calc-zero" data-value="0">0</button>
                         <button class="calc-btn calc-number" data-value=".">.</button>
                         <button class="calc-btn calc-equals" data-action="equals">=</button>
@@ -785,15 +805,16 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Power Calculator Mode -->
             <div class="calculator-mode" id="powerCalculatorMode">
                 <div class="calculator-section">
                     <label>Formula:</label>
-                    <input type="text" id="calculatorFormula" placeholder="e.g., level * 5 + strength * 2" class="calculator-input">
+                    <input type="text" id="calculatorFormula" placeholder="e.g., level * 5 + strength * 2"
+                        class="calculator-input">
                     <small class="calculator-hint">Use variables: level, strength, agility, intelligence, etc.</small>
                 </div>
-                
+
                 <div class="calculator-section">
                     <label>Variables:</label>
                     <div id="calculatorVariables" class="calculator-variables">
@@ -816,27 +837,28 @@
                     </div>
                     <button class="btn btn-small btn-secondary" id="addVariableBtn">+ Add Variable</button>
                 </div>
-                
+
                 <div class="calculator-section">
                     <button class="btn btn-primary" id="calculateBtn">Calculate</button>
                 </div>
-                
+
                 <div class="calculator-result" id="calculatorResult">
                     <div class="result-label">Result:</div>
                     <div class="result-value" id="resultValue">-</div>
                 </div>
-                
+
                 <div class="calculator-section">
                     <label>Quick Formulas:</label>
                     <div class="quick-formulas">
                         <button class="quick-formula-btn" data-formula="level * 5">Level × 5</button>
                         <button class="quick-formula-btn" data-formula="level * 10 + strength * 2">Damage</button>
                         <button class="quick-formula-btn" data-formula="level * 3 + intelligence">Mana Cost</button>
-                        <button class="quick-formula-btn" data-formula="Math.floor(level / 5) * 10">Every 5 Levels</button>
+                        <button class="quick-formula-btn" data-formula="Math.floor(level / 5) * 10">Every 5
+                            Levels</button>
                     </div>
                 </div>
             </div>
-            
+
             <!-- Damage Calculator Mode -->
             <div class="calculator-mode" id="damageCalculatorMode">
                 <div class="calculator-section">
@@ -868,7 +890,7 @@
                     <div class="result-value" style="font-size: 1.5rem;" id="damageRange">- / -</div>
                 </div>
             </div>
-            
+
             <!-- Percentage Calculator Mode -->
             <div class="calculator-mode" id="percentageCalculatorMode">
                 <div class="calculator-section">
@@ -897,16 +919,18 @@
                     <div class="result-value" id="percentOfResult">25%</div>
                 </div>
             </div>
-            
+
             <!-- Dice Roller Mode -->
             <div class="calculator-mode" id="diceCalculatorMode">
                 <div class="calculator-section">
                     <label>Number of Dice:</label>
-                    <input type="number" id="diceCount" class="calculator-input" value="1" min="1" max="100" placeholder="Enter number of dice">
+                    <input type="number" id="diceCount" class="calculator-input" value="1" min="1" max="100"
+                        placeholder="Enter number of dice">
                 </div>
                 <div class="calculator-section">
                     <label>Number of Sides:</label>
-                    <input type="number" id="diceType" class="calculator-input" value="20" min="2" max="1000" placeholder="Enter number of sides">
+                    <input type="number" id="diceType" class="calculator-input" value="20" min="2" max="1000"
+                        placeholder="Enter number of sides">
                 </div>
                 <div class="calculator-section">
                     <label>Modifier:</label>
@@ -915,12 +939,14 @@
                             <option value="1">+</option>
                             <option value="-1">−</option>
                         </select>
-                        <input type="number" id="diceModifierValue" class="calculator-input" value="0" min="0" placeholder="0" style="flex: 1;">
+                        <input type="number" id="diceModifierValue" class="calculator-input" value="0" min="0"
+                            placeholder="0" style="flex: 1;">
                     </div>
                 </div>
                 <div class="calculator-section">
                     <button class="btn btn-primary" id="rollDiceBtn" style="width: 100%;">
-                        <img src="icons/misc/dice.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <img src="icons/misc/dice.svg" alt="" width="16" height="16"
+                            style="vertical-align: middle; margin-right: 4px;">
                         Roll Dice
                     </button>
                 </div>
@@ -937,7 +963,8 @@
     <div class="quick-notes-modal" id="quickNotesModal">
         <div class="calculator-header">
             <h3>
-                <img src="icons/misc/document.svg" alt="" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
+                <img src="icons/misc/document.svg" alt="" width="20" height="20"
+                    style="vertical-align: middle; margin-right: 8px;">
                 Quick Notes
             </h3>
             <button class="calculator-close" id="quickNotesCloseBtn">
@@ -947,25 +974,29 @@
         <div class="calculator-body">
             <div class="quick-notes-search">
                 <input type="text" id="quickNotesSearch" class="calculator-input" placeholder="Search notes...">
-                <img src="icons/actions/search.svg" alt="" width="16" height="16" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); opacity: 0.5;">
+                <img src="icons/actions/search.svg" alt="" width="16" height="16"
+                    style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); opacity: 0.5;">
             </div>
-            
+
             <div class="quick-notes-actions">
                 <button class="btn btn-primary" id="createQuickNoteBtn">
-                    <img src="icons/actions/add.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                    <img src="icons/actions/add.svg" alt="" width="16" height="16"
+                        style="vertical-align: middle; margin-right: 4px;">
                     New Note
                 </button>
                 <button class="btn btn-secondary" id="goToNotesBtn">
-                    <img src="icons/misc/clipboard.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                    <img src="icons/misc/clipboard.svg" alt="" width="16" height="16"
+                        style="vertical-align: middle; margin-right: 4px;">
                     Go to Notes Tab
                 </button>
             </div>
-            
+
             <div class="quick-notes-list" id="quickNotesList"></div>
-            
+
             <!-- Quick Note Editor (hidden by default) -->
             <div class="quick-note-editor" id="quickNoteEditor" style="display: none;">
-                <input type="text" id="quickNoteTitle" class="calculator-input" placeholder="Note Title" style="margin-bottom: 0.5rem;">
+                <input type="text" id="quickNoteTitle" class="calculator-input" placeholder="Note Title"
+                    style="margin-bottom: 0.5rem;">
                 <select id="quickNoteCategory" class="calculator-input" style="margin-bottom: 0.5rem;">
                     <option value="Ideas">Ideas</option>
                     <option value="To-Do">To-Do</option>
@@ -974,10 +1005,12 @@
                     <option value="Design">Design</option>
                     <option value="Other">Other</option>
                 </select>
-                <textarea id="quickNoteContent" class="calculator-input" placeholder="Note content..." rows="8" style="resize: vertical;"></textarea>
+                <textarea id="quickNoteContent" class="calculator-input" placeholder="Note content..." rows="8"
+                    style="resize: vertical;"></textarea>
                 <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
                     <button class="btn btn-primary" id="saveQuickNoteBtn">
-                        <img src="icons/actions/save.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <img src="icons/actions/save.svg" alt="" width="16" height="16"
+                            style="vertical-align: middle; margin-right: 4px;">
                         Save
                     </button>
                     <button class="btn btn-secondary" id="cancelQuickNoteBtn">Cancel</button>
@@ -1017,34 +1050,35 @@
                     <img src="icons/misc/ai.svg" alt="" width="48" height="48">
                 </div>
                 <h4>Welcome to Forger!</h4>
-                <p>I'm here to help you brainstorm and develop your game. I have full awareness of all your tasks, assets, classes, mechanics, story elements, and more.</p>
+                <p>I'm here to help you brainstorm and develop your game. I have full awareness of all your tasks,
+                    assets, classes, mechanics, story elements, and more.</p>
                 <p>Ask me anything about your project, or use me to:</p>
                 <ul>
                     <li>
-                        <img src="icons/misc/lightbulb.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <img src="icons/misc/lightbulb.svg" alt="" width="16" height="16"
+                            style="vertical-align: middle; margin-right: 4px;">
                         Brainstorm new ideas and features
                     </li>
                     <li>
-                        <img src="icons/actions/search.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <img src="icons/actions/search.svg" alt="" width="16" height="16"
+                            style="vertical-align: middle; margin-right: 4px;">
                         Analyze your game design
                     </li>
                     <li>
-                        <img src="icons/misc/progress.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <img src="icons/misc/progress.svg" alt="" width="16" height="16"
+                            style="vertical-align: middle; margin-right: 4px;">
                         Get insights on balance and structure
                     </li>
                     <li>✨ Explore creative possibilities</li>
                 </ul>
-                <p class="welcome-note">Note: I can read and analyze everything, but I won't make any changes to your project directly.</p>
+                <p class="welcome-note">Note: I can read and analyze everything, but I won't make any changes to your
+                    project directly.</p>
             </div>
             <div class="ai-messages" id="aiMessages"></div>
         </div>
         <div class="ai-input-container">
-            <textarea 
-                class="ai-input" 
-                id="aiInput" 
-                placeholder="Ask me anything about your game design..."
-                rows="3"
-            ></textarea>
+            <textarea class="ai-input" id="aiInput" placeholder="Ask me anything about your game design..."
+                rows="3"></textarea>
             <button class="ai-send-btn" id="aiSendBtn">
                 <img src="icons/actions/export.svg" alt="" class="send-icon" width="20" height="20">
                 <span class="send-label">Send</span>
@@ -1052,7 +1086,8 @@
         </div>
         <div class="ai-footer">
             <span class="ai-footer-note">
-                <img src="icons/misc/lightbulb.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                <img src="icons/misc/lightbulb.svg" alt="" width="16" height="16"
+                    style="vertical-align: middle; margin-right: 4px;">
                 Tip: I can see all your project data and help with brainstorming
             </span>
         </div>
@@ -1063,17 +1098,18 @@
         <div class="ai-settings-content">
             <div class="ai-settings-header">
                 <h2>
-                    <img src="icons/navigation/settings.svg" alt="" width="24" height="24" style="vertical-align: middle; margin-right: 8px;">
+                    <img src="icons/navigation/settings.svg" alt="" width="24" height="24"
+                        style="vertical-align: middle; margin-right: 8px;">
                     AI Configuration
                 </h2>
                 <button class="ai-settings-close" id="aiSettingsCloseBtn">&times;</button>
             </div>
-            
+
             <div class="ai-settings-body">
                 <div class="settings-intro">
                     <p>Choose how you want to connect to an AI model. Select one of three options below:</p>
                 </div>
-                
+
                 <!-- Mode Selection -->
                 <div class="ai-mode-selector">
                     <label class="ai-mode-option" data-mode="local">
@@ -1084,12 +1120,13 @@
                             </div>
                             <div class="mode-details">
                                 <h3>Local GGUF Model</h3>
-                                <p>Run AI models directly in your browser using WebAssembly. Private and offline-capable.</p>
+                                <p>Run AI models directly in your browser using WebAssembly. Private and
+                                    offline-capable.</p>
                                 <span class="mode-badge mode-badge-local">Best Privacy</span>
                             </div>
                         </div>
                     </label>
-                    
+
                     <label class="ai-mode-option" data-mode="api">
                         <input type="radio" name="aiMode" value="api" id="aiModeAPI">
                         <div class="mode-card">
@@ -1103,7 +1140,7 @@
                             </div>
                         </div>
                     </label>
-                    
+
                     <label class="ai-mode-option" data-mode="remote">
                         <input type="radio" name="aiMode" value="remote" id="aiModeRemote">
                         <div class="mode-card">
@@ -1118,17 +1155,19 @@
                         </div>
                     </label>
                 </div>
-                
+
                 <!-- Local GGUF Settings -->
                 <div class="ai-settings-section" id="localSettings" style="display: none;">
                     <h3>
-                        <img src="icons/misc/ai.svg" alt="" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
+                        <img src="icons/misc/ai.svg" alt="" width="20" height="20"
+                            style="vertical-align: middle; margin-right: 8px;">
                         Local Model Configuration
                     </h3>
                     <div class="settings-info">
-                        <p><strong>Note:</strong> GGUF models run entirely in your browser using WebAssembly. No data leaves your device.</p>
+                        <p><strong>Note:</strong> GGUF models run entirely in your browser using WebAssembly. No data
+                            leaves your device.</p>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Model Selection</label>
                         <select class="settings-input" id="localModelSelect">
@@ -1136,54 +1175,63 @@
                             <option value="default">Default Model (Included)</option>
                             <option value="custom">Load Custom GGUF File...</option>
                         </select>
-                        <button type="button" class="btn btn-secondary btn-sm" id="openModelsFolder" style="width: 100%; margin-top: 0.5rem;">
-                            <img src="icons/misc/folder.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <button type="button" class="btn btn-secondary btn-sm" id="openModelsFolder"
+                            style="width: 100%; margin-top: 0.5rem;">
+                            <img src="icons/misc/folder.svg" alt="" width="16" height="16"
+                                style="vertical-align: middle; margin-right: 4px;">
                             Open Models Folder
                         </button>
-                        <small>Place .gguf model files in the models/ folder. They will appear here automatically.</small>
+                        <small>Place .gguf model files in the models/ folder. They will appear here
+                            automatically.</small>
                     </div>
-                    
+
                     <div class="form-group" id="customModelUpload" style="display: none;">
                         <label>Upload GGUF Model File</label>
                         <input type="file" class="settings-input" id="ggufFileInput" accept=".gguf">
                         <small>Supported: Any GGUF format model (recommended: 3-7B parameters)</small>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Context Length</label>
-                        <input type="number" class="settings-input" id="localContextLength" value="2048" min="512" max="8192" step="512">
+                        <input type="number" class="settings-input" id="localContextLength" value="2048" min="512"
+                            max="8192" step="512">
                         <small>Higher values allow longer conversations but use more memory</small>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Temperature</label>
-                        <input type="range" class="settings-slider" id="localTemperature" min="0" max="2" step="0.1" value="0.7">
+                        <input type="range" class="settings-slider" id="localTemperature" min="0" max="2" step="0.1"
+                            value="0.7">
                         <span class="slider-value" id="localTempValue">0.7</span>
                         <small>Higher = more creative, Lower = more focused</small>
                     </div>
-                    
-                    <div class="form-group" id="modelStatusSection" style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 4px; display: none;">
+
+                    <div class="form-group" id="modelStatusSection"
+                        style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 4px; display: none;">
                         <label>Model Status</label>
                         <div id="modelStatus" style="margin-top: 0.5rem; font-size: 0.9rem; color: #888;">
                             No model loaded
                         </div>
-                        <button type="button" class="btn btn-danger btn-sm" id="unloadModelBtn" style="width: 100%; margin-top: 0.5rem; display: none;">
-                            <img src="icons/actions/trash.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <button type="button" class="btn btn-danger btn-sm" id="unloadModelBtn"
+                            style="width: 100%; margin-top: 0.5rem; display: none;">
+                            <img src="icons/actions/trash.svg" alt="" width="16" height="16"
+                                style="vertical-align: middle; margin-right: 4px;">
                             Unload Model (Free Memory)
                         </button>
                     </div>
                 </div>
-                
+
                 <!-- API Provider Settings -->
                 <div class="ai-settings-section" id="apiSettings" style="display: none;">
                     <h3>
-                        <img src="icons/actions/key.svg" alt="" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
+                        <img src="icons/actions/key.svg" alt="" width="20" height="20"
+                            style="vertical-align: middle; margin-right: 8px;">
                         API Provider Configuration
                     </h3>
                     <div class="settings-info">
                         <p><strong>Note:</strong> Your API key is stored locally and never sent to our servers.</p>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Provider</label>
                         <select class="settings-input" id="apiProvider">
@@ -1195,68 +1243,74 @@
                             <option value="custom">Custom API</option>
                         </select>
                     </div>
-                    
+
                     <div class="form-group" id="customApiEndpoint" style="display: none;">
                         <label>API Endpoint</label>
-                        <input type="url" class="settings-input" id="apiEndpoint" placeholder="https://api.example.com/v1/chat/completions">
+                        <input type="url" class="settings-input" id="apiEndpoint"
+                            placeholder="https://api.example.com/v1/chat/completions">
                         <small>Enter the full API endpoint URL</small>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>API Key</label>
                         <input type="password" class="settings-input" id="apiKey" placeholder="sk-...">
                         <small>Get your API key from the provider's dashboard</small>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Model</label>
                         <input type="text" class="settings-input" id="apiModel" placeholder="gpt-4" value="gpt-4">
                         <small>Specific model name (e.g., gpt-4, claude-3-opus-20240229)</small>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Temperature</label>
-                        <input type="range" class="settings-slider" id="apiTemperature" min="0" max="2" step="0.1" value="0.7">
+                        <input type="range" class="settings-slider" id="apiTemperature" min="0" max="2" step="0.1"
+                            value="0.7">
                         <span class="slider-value" id="apiTempValue">0.7</span>
                         <small>Higher = more creative, Lower = more focused</small>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Max Tokens</label>
-                        <input type="number" class="settings-input" id="apiMaxTokens" value="2000" min="100" max="8000" step="100">
+                        <input type="number" class="settings-input" id="apiMaxTokens" value="2000" min="100" max="8000"
+                            step="100">
                         <small>Maximum length of AI responses</small>
                     </div>
                 </div>
-                
+
                 <!-- Remote Server Settings -->
                 <div class="ai-settings-section" id="remoteSettings" style="display: none;">
                     <h3>
-                        <img src="icons/misc/network.svg" alt="" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
+                        <img src="icons/misc/network.svg" alt="" width="20" height="20"
+                            style="vertical-align: middle; margin-right: 8px;">
                         Remote Server Configuration
                     </h3>
                     <div class="settings-info">
                         <p><strong>Note:</strong> Connect to your own AI server or third-party hosting service.</p>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Server URL</label>
-                        <input type="url" class="settings-input" id="remoteServerUrl" placeholder="http://localhost:8080 or https://your-server.com">
+                        <input type="url" class="settings-input" id="remoteServerUrl"
+                            placeholder="http://localhost:8080 or https://your-server.com">
                         <small>Full URL including protocol and port</small>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Endpoint Path</label>
-                        <input type="text" class="settings-input" id="remoteEndpointPath" value="/v1/chat/completions" placeholder="/v1/chat/completions">
+                        <input type="text" class="settings-input" id="remoteEndpointPath" value="/v1/chat/completions"
+                            placeholder="/v1/chat/completions">
                         <small>API endpoint path (e.g., /v1/chat/completions, /api/generate)</small>
                     </div>
-                    
+
                     <div class="form-group">
                         <label class="checkbox-label">
                             <input type="checkbox" id="remoteRequiresAuth">
                             <span>Requires Authentication</span>
                         </label>
                     </div>
-                    
+
                     <div id="remoteAuthSettings" style="display: none;">
                         <div class="form-group">
                             <label>Authentication Type</label>
@@ -1266,13 +1320,14 @@
                                 <option value="basic">Basic Auth</option>
                             </select>
                         </div>
-                        
+
                         <div class="form-group">
                             <label>Token/Key</label>
-                            <input type="password" class="settings-input" id="remoteAuthToken" placeholder="Your authentication token">
+                            <input type="password" class="settings-input" id="remoteAuthToken"
+                                placeholder="Your authentication token">
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Request Format</label>
                         <select class="settings-input" id="remoteRequestFormat">
@@ -1283,34 +1338,39 @@
                             <option value="custom">Custom JSON</option>
                         </select>
                     </div>
-                    
+
                     <div class="form-group">
                         <button class="btn btn-secondary btn-sm" id="testConnectionBtn">
-                            <img src="icons/actions/plug-connection.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                            <img src="icons/actions/plug-connection.svg" alt="" width="16" height="16"
+                                style="vertical-align: middle; margin-right: 4px;">
                             <span>Test Connection</span>
                         </button>
                     </div>
                 </div>
-                
+
                 <!-- Test Area -->
                 <div class="ai-test-section" id="aiTestSection" style="display: none;">
                     <h3>
-                        <img src="icons/actions/flask-test.svg" alt="" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
+                        <img src="icons/actions/flask-test.svg" alt="" width="20" height="20"
+                            style="vertical-align: middle; margin-right: 8px;">
                         Test Configuration
                     </h3>
-                    <textarea class="settings-input" id="testPrompt" rows="3" placeholder="Type a test message...">Hello! Can you introduce yourself?</textarea>
+                    <textarea class="settings-input" id="testPrompt" rows="3"
+                        placeholder="Type a test message...">Hello! Can you introduce yourself?</textarea>
                     <button class="btn btn-primary btn-sm" id="runTestBtn">
-                        <img src="icons/actions/play.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <img src="icons/actions/play.svg" alt="" width="16" height="16"
+                            style="vertical-align: middle; margin-right: 4px;">
                         <span>Run Test</span>
                     </button>
                     <div class="test-result" id="testResult"></div>
                 </div>
             </div>
-            
+
             <div class="ai-settings-footer">
                 <button class="btn btn-secondary" id="cancelSettingsBtn">Cancel</button>
                 <button class="btn btn-primary" id="saveSettingsBtn">
-                    <img src="icons/actions/save.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                    <img src="icons/actions/save.svg" alt="" width="16" height="16"
+                        style="vertical-align: middle; margin-right: 4px;">
                     <span>Save Configuration</span>
                 </button>
             </div>
@@ -1327,15 +1387,18 @@
         </div>
         <div class="bulk-panel-actions">
             <button class="btn btn-sm btn-primary" onclick="BulkOperations.bulkAddRelationships()">
-                <img src="icons/actions/add.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                <img src="icons/actions/add.svg" alt="" width="16" height="16"
+                    style="vertical-align: middle; margin-right: 4px;">
                 <span>Add Relationships</span>
             </button>
             <button class="btn btn-sm btn-secondary" onclick="BulkOperations.bulkRemoveRelationships()">
-                <img src="icons/actions/subtract.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                <img src="icons/actions/subtract.svg" alt="" width="16" height="16"
+                    style="vertical-align: middle; margin-right: 4px;">
                 <span>Remove Relationships</span>
             </button>
             <button class="btn btn-sm btn-danger" onclick="BulkOperations.bulkDelete()">
-                <img src="icons/actions/trash.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                <img src="icons/actions/trash.svg" alt="" width="16" height="16"
+                    style="vertical-align: middle; margin-right: 4px;">
                 <span>Delete Selected</span>
             </button>
         </div>
@@ -1346,7 +1409,8 @@
         <div class="project-modal-content">
             <div class="project-modal-header">
                 <h2>
-                    <img src="icons/misc/gameplay.svg" alt="" width="24" height="24" style="vertical-align: middle; margin-right: 8px;">
+                    <img src="icons/misc/gameplay.svg" alt="" width="24" height="24"
+                        style="vertical-align: middle; margin-right: 8px;">
                     Project Management
                 </h2>
                 <button class="project-modal-close" id="projectModalClose">&times;</button>
@@ -1359,34 +1423,39 @@
                         <button class="btn btn-sm btn-primary" id="renameProjectBtn">Rename</button>
                     </div>
                 </div>
-                
+
                 <div class="project-section">
                     <h3>Actions</h3>
                     <button class="btn btn-primary" id="newProjectBtn">
-                        <img src="icons/actions/add.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <img src="icons/actions/add.svg" alt="" width="16" height="16"
+                            style="vertical-align: middle; margin-right: 4px;">
                         <span>New Project</span>
                     </button>
                     <button class="btn btn-accent" id="exportProjectBtn">
-                        <img src="icons/actions/export.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <img src="icons/actions/export.svg" alt="" width="16" height="16"
+                            style="vertical-align: middle; margin-right: 4px;">
                         <span>Export Current Project</span>
                     </button>
                     <button class="btn btn-accent" id="importProjectBtn">
-                        <img src="icons/actions/import.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <img src="icons/actions/import.svg" alt="" width="16" height="16"
+                            style="vertical-align: middle; margin-right: 4px;">
                         <span>Import Project</span>
                     </button>
                     <button class="btn btn-danger" id="deleteProjectBtn">
-                        <img src="icons/actions/trash.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <img src="icons/actions/trash.svg" alt="" width="16" height="16"
+                            style="vertical-align: middle; margin-right: 4px;">
                         <span>Delete Current Project</span>
                     </button>
                     <button class="btn btn-danger" id="deleteAllProjectsBtn">
-                        <img src="icons/actions/warning.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <img src="icons/actions/warning.svg" alt="" width="16" height="16"
+                            style="vertical-align: middle; margin-right: 4px;">
                         <span>Delete ALL Projects</span>
                     </button>
                 </div>
-                
+
                 <!-- Hidden file input for project import -->
                 <input type="file" id="importProjectFileInput" accept=".zip" style="display: none;">
-                
+
                 <div class="project-section">
                     <h3>All Projects</h3>
                     <div class="project-list" id="projectList"></div>
@@ -1397,4 +1466,5 @@
 
     <script src="script.js"></script>
 </body>
+
 </html>

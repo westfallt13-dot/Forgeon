@@ -244,7 +244,7 @@ ipcMain.handle('load-model', async (event, modelPath, options = {}) => {
         
         // Create context
         const context = await model.createContext({
-            contextSize: options.contextLength || 2048
+            contextSize: options.contextLength || 512
         });
         
         // Create chat session

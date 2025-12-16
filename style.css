@@ -733,12 +733,18 @@ img.stat-icon {
 .calendar-day:not(.empty):hover {
     background: var(--bg-secondary);
     transform: scale(1.05);
+    color: var(--text-primary);
 }
 
 .calendar-day.today {
     background: var(--primary-color);
     color: white;
     font-weight: 700;
+}
+
+.calendar-day.today:hover {
+    background: var(--primary-color);
+    color: white;
 }
 
 .calendar-day.today .day-number {
@@ -758,6 +764,7 @@ img.stat-icon {
 .day-number {
     font-size: 0.9rem;
     font-weight: 500;
+    color: inherit;
 }
 
 .reminder-count {
@@ -795,18 +802,18 @@ img.stat-icon {
 .calendar-dots .dot {
     width: 6px;
     height: 6px;
-    background: white;
+    background: var(--text-secondary);
     border-radius: 50%;
     box-shadow: 0 0 0 1px rgba(0,0,0,0.15) inset;
     opacity: 0.95;
 }
 
 .calendar-dots .dot.task {
-    background: var(white);
+    background: var(--text-secondary);
 }
 
 .calendar-dots .dot.milestone {
-    background: var(white);
+    background: var(--text-secondary);
 }
 
 .calendar-dots .dot.completed {
@@ -2814,7 +2821,7 @@ input[type="file"]:focus {
 
 .class-filter-btn:hover {
     background: var(--bg-hover);
-    border-color: var(--primary);
+    border-color: var(--primary-color);
 }
 
 .class-filter-btn.active {
@@ -2933,7 +2940,7 @@ input[type="file"]:focus {
 }
 
 .attribute-badge {
-    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
     color: white;
     padding: 0.35rem 0.75rem;
     border-radius: 6px;
@@ -2964,7 +2971,7 @@ input[type="file"]:focus {
 }
 
 .skill-level {
-    background: var(--accent-color);
+    background: var(--primary-color);
     color: white;
     padding: 0.15rem 0.4rem;
     border-radius: 4px;
@@ -3056,10 +3063,24 @@ input[type="file"]:focus {
 
 .attribute-input .attr-name {
     flex: 1;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-family: inherit;
 }
 
 .attribute-input .attr-value {
     width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-family: inherit;
 }
 
 /* Skill inputs */
@@ -3091,6 +3112,13 @@ input[type="file"]:focus {
 .skill-input input[type="number"],
 .skill-input textarea {
     width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-family: inherit;
 }
 
 .skill-input .skill-level,
@@ -3122,10 +3150,23 @@ input[type="file"]:focus {
 
 .formula-input .formula-name {
     width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-family: inherit;
 }
 
 .formula-input .formula-expression {
     width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.9rem;
     font-family: 'Courier New', monospace;
 }
 
@@ -4262,11 +4303,11 @@ input[type="file"]:focus {
     padding: 8px;
     background: var(--bg-secondary);
     border-radius: 6px;
-    border-left: 3px solid var(--primary);
+    border-left: 3px solid var(--primary-color);
 }
 
 .character-classes strong {
-    color: var(--primary);
+    color: var(--primary-color);
 }
 
 .character-card-footer {
@@ -4362,12 +4403,12 @@ input[type="file"]:focus {
 }
 
 .multi-class-option:hover {
-    border-color: var(--primary);
+    border-color: var(--primary-color);
     background: var(--bg-hover);
 }
 
 .multi-class-option.selected {
-    border-color: var(--primary);
+    border-color: var(--primary-color);
     background: var(--bg-hover);
 }
 
@@ -4419,12 +4460,12 @@ input[type="file"]:focus {
     background: var(--bg-secondary);
     padding: 15px;
     border-radius: 8px;
-    border-left: 4px solid var(--accent);
+    border-left: 4px solid var(--primary-color);
 }
 
 .conflict-item h4 {
     margin-bottom: 10px;
-    color: var(--primary);
+    color: var(--primary-color);
 }
 
 .conflict-sources {
@@ -4450,7 +4491,7 @@ input[type="file"]:focus {
 }
 
 .priority-badge {
-    background: var(--primary);
+    background: var(--primary-color);
     color: white;
     padding: 4px 8px;
     border-radius: 4px;
@@ -4551,7 +4592,7 @@ input[type="file"]:focus {
 }
 
 .comparison-table thead {
-    background: var(--primary);
+    background: var(--primary-color);
     color: white;
 }
 
@@ -4583,12 +4624,12 @@ input[type="file"]:focus {
 }
 
 .attr-value {
-    color: var(--accent);
+    color: var(--primary-color);
     font-weight: 500;
 }
 
 .skill-available {
-    color: var(--primary);
+    color: var(--primary-color);
     font-weight: 500;
 }
 
@@ -4618,12 +4659,12 @@ input[type="file"]:focus {
     background: var(--bg-primary);
     padding: 15px;
     border-radius: 8px;
-    border-left: 4px solid var(--primary);
+    border-left: 4px solid var(--primary-color);
 }
 
 .summary-card h4 {
     margin-bottom: 12px;
-    color: var(--primary);
+    color: var(--primary-color);
 }
 
 .summary-stats {
@@ -4714,7 +4755,7 @@ input[type="file"]:focus {
     background: var(--bg-primary);
     padding: 15px;
     border-radius: 8px;
-    border-left: 4px solid var(--primary);
+    border-left: 4px solid var(--primary-color);
 }
 
 .balance-stat-card .stat-icon {
@@ -4734,7 +4775,7 @@ input[type="file"]:focus {
 .balance-stat-card .stat-value {
     font-size: 1.5em;
     font-weight: 700;
-    color: var(--primary);
+    color: var(--primary-color);
 }
 
 .balance-classes-section {
@@ -4834,7 +4875,7 @@ input[type="file"]:focus {
 .balance-power-score .power-value {
     font-size: 1.5em;
     font-weight: 700;
-    color: var(--primary);
+    color: var(--primary-color);
 }
 
 .balance-power-bar {
@@ -4847,7 +4888,7 @@ input[type="file"]:focus {
 
 .power-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--primary), var(--accent));
+    background: linear-gradient(90deg, var(--primary-color), var(--primary-hover));
     transition: width 0.5s ease;
 }
 
@@ -4890,7 +4931,7 @@ input[type="file"]:focus {
     background: var(--bg-secondary);
     padding: 12px 15px;
     border-radius: 6px;
-    border-left: 3px solid var(--accent);
+    border-left: 3px solid var(--primary-color);
 }
 
 .balance-suggestions.balanced {
@@ -5184,12 +5225,12 @@ input[type="file"]:focus {
 }
 
 .ability-option:hover {
-    border-color: var(--primary);
+    border-color: var(--primary-color);
     background: var(--bg-hover);
 }
 
 .ability-option.selected {
-    border-color: var(--primary);
+    border-color: var(--primary-color);
     background: var(--bg-hover);
     box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.1);
 }
@@ -6193,10 +6234,14 @@ html {
 
 .related-item-chip .chip-type {
     font-size: 0.75rem;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     padding: 0.15rem 0.4rem;
-    background-color: var(--bg-secondary);
+    background-color: rgba(0, 0, 0, 0.08);
     border-radius: 8px;
+}
+
+[data-theme="dark"] .related-item-chip .chip-type {
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .related-item-chip .chip-dir {
@@ -8781,6 +8826,32 @@ html {
     min-height: 2rem;
 }
 
+.relationship-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.6rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    margin: 0.25rem;
+}
+
+.relationship-chip .chip-type {
+    font-weight: 600;
+    color: var(--text-primary);
+    background-color: rgba(0, 0, 0, 0.08);
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    text-transform: uppercase;
+    font-size: 0.65rem;
+}
+
+[data-theme="dark"] .relationship-chip .chip-type {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
 .relationship-chip-small {
     display: inline-flex;
     align-items: center;
@@ -8795,9 +8866,16 @@ html {
 
 .relationship-chip-small .chip-type {
     font-weight: 600;
-    color: var(--primary-color);
+    color: var(--text-primary);
+    background-color: rgba(0, 0, 0, 0.08);
+    padding: 0.15rem 0.3rem;
+    border-radius: 3px;
     text-transform: uppercase;
     font-size: 0.65rem;
+}
+
+[data-theme="dark"] .relationship-chip-small .chip-type {
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Empty states */

@@ -3897,7 +3897,7 @@ const ClassesManager = {
                     <div style="margin-top: 0.75rem;">
                         <small style="color: var(--text-secondary); font-weight: 600;">Related Items:</small>
                         <div style="margin-top: 0.5rem;">
-                            ${Utils.renderRelatedItems(tempRelatedItems)}
+                            ${Utils.renderConnections(classToEdit)}
                         </div>
                     </div>
                 `;
@@ -16195,7 +16195,7 @@ const AIAssistant = {
         mode: null, // 'local', 'api', 'remote'
         local: {
             modelPath: null,
-            contextLength: 2048,
+            contextLength: 512,
             temperature: 0.7
         },
         api: {

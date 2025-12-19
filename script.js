@@ -1,10 +1,13 @@
 /* =================================
    Forgeon - Main Application
+   Game Development Planning Tool
    ================================= */
 
 // ============================================
 // Electron Integration
 // ============================================
+// Detects whether the app is running in Electron (desktop) or browser mode
+// Allows conditional logic for platform-specific features (file system access, etc)
 const isElectron = typeof window.electronAPI !== 'undefined';
 
 console.log(`Running in ${isElectron ? 'Electron' : 'Browser'} mode`);
@@ -12,10 +15,17 @@ console.log(`Running in ${isElectron ? 'Electron' : 'Browser'} mode`);
 // ============================================
 // Project Manager
 // ============================================
+// Manages multiple game projects, project switching, creation, deletion, and persistence
+// Uses localStorage with project IDs as namespaces to support multi-project workflows
 const ProjectManager = {
-    currentProjectId: null,
-    projects: [],
+    currentProjectId: null,  // The ID of the currently active project
+    projects: [],            // Array of all available projects with metadata
     
+    /**
+     * Initializes the project system on app startup
+     * Loads previously saved projects from localStorage
+     * Sets the current active project or creates a default one
+     */
     init() {
         // Load project list from global localStorage
         const savedProjects = localStorage.getItem('forgeon_projects');
@@ -29,17 +39,22 @@ const ProjectManager = {
         if (currentId && this.projects.find(p => p.id === currentId)) {
             this.currentProjectId = currentId;
         } else if (this.projects.length > 0) {
-            // Default to first project
+            // Default to first project if current ID is invalid
             this.currentProjectId = this.projects[0].id;
             localStorage.setItem('forgeon_currentProject', this.currentProjectId);
         } else {
-            // Create default project
+            // Create default project if none exist
             this.createProject('My Game Project');
         }
         
         this.updateUI();
     },
     
+    /**
+     * Creates a new game project
+     * @param {string} name - The name of the new project
+     * @returns {Object} The newly created project object
+     */
     createProject(name) {
         const project = {
             id: this.generateProjectId(),
@@ -54,6 +69,11 @@ const ProjectManager = {
         return project;
     },
     
+    /**
+     * Switches the active project to a different one
+     * Saves current project data before switching
+     * @param {string} projectId - The ID of the project to switch to
+     */
     switchProject(projectId) {
         if (!this.projects.find(p => p.id === projectId)) {
             console.error('Project not found:', projectId);
@@ -69,7 +89,7 @@ const ProjectManager = {
         this.currentProjectId = projectId;
         localStorage.setItem('forgeon_currentProject', projectId);
         
-        // Update last modified
+        // Update last modified timestamp
         const project = this.projects.find(p => p.id === projectId);
         if (project) {
             project.lastModified = new Date().toISOString();
@@ -80,6 +100,11 @@ const ProjectManager = {
         location.reload();
     },
     
+    /**
+     * Deletes a project after user confirmation
+     * Cannot delete the only remaining project
+     * @param {string} projectId - The ID of the project to delete
+     */
     deleteProject(projectId) {
         if (this.projects.length === 1) {
             Utils.showToast('Cannot delete the only project. Create a new project first.', 'warning');
@@ -109,6 +134,10 @@ const ProjectManager = {
         );
     },
     
+    /**
+     * Deletes all projects with double confirmation
+     * Creates a fresh default project after deletion
+     */
     deleteAllProjects() {
         Utils.showConfirm(
             '⚠️ DELETE ALL PROJECTS?\n\nThis will permanently delete ALL projects and their data. This cannot be undone!\n\nAre you absolutely sure?',
@@ -133,6 +162,11 @@ const ProjectManager = {
         );
     },
     
+    /**
+     * Renames an existing project
+     * @param {string} projectId - The ID of the project to rename
+     * @param {string} newName - The new name for the project
+     */
     renameProject(projectId, newName) {
         const project = this.projects.find(p => p.id === projectId);
         if (!project) return;
@@ -143,23 +177,42 @@ const ProjectManager = {
         this.updateUI();
     },
     
+    /**
+     * Gets the currently active project object
+     * @returns {Object} The current project object
+     */
     getCurrentProject() {
         return this.projects.find(p => p.id === this.currentProjectId);
     },
     
+    /**
+     * Gets a namespaced localStorage key for the current project
+     * Allows multiple projects to store data without conflicts
+     * @param {string} key - The base key to namespace
+     * @returns {string} The namespaced key for localStorage
+     */
     getStorageKey(key) {
-        // Return namespaced key for current project
         return `forgeon_project_${this.currentProjectId}_${key}`;
     },
     
+    /**
+     * Persists the project list to localStorage
+     */
     saveProjectList() {
         localStorage.setItem('forgeon_projects', JSON.stringify(this.projects));
     },
     
+    /**
+     * Generates a unique project ID
+     * @returns {string} A unique project identifier
+     */
     generateProjectId() {
         return 'proj_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     },
     
+    /**
+     * Updates the project UI elements (dropdown selector, name display, etc)
+     */
     updateUI() {
         const selector = document.getElementById('projectSelector');
         const nameDisplay = document.getElementById('currentProjectName');
@@ -180,30 +233,39 @@ const ProjectManager = {
 // ============================================
 // Data Store & State Management
 // ============================================
+// Central application state object that manages all game project data
+// Handles loading/saving from localStorage, theme management, and data structure initialization
+// All changes to application state should go through this object for consistency
 const AppState = {
-    currentSection: 'dashboard',
-    tasks: [],
-    assets: [],
-    milestones: [],
-    notes: [],  // Changed from string to array for multiple notes
-    noteCategories: ['Ideas', 'To-Do', 'Research', 'Bugs', 'Design', 'Other'],  // Default categories
-    theme: 'light',
-    classes: [],
-    mechanics: [],
-    story: { 
-        acts: [], 
-        backgroundMap: null, 
-        connectionWaypoints: {},
-        characters: [],
-        locations: [],
-        timeline: [],
-        conflicts: [],
-        themes: [],
-        items: [],
-        quests: []
+    // ===== Core State Properties =====
+    currentSection: 'dashboard',  // Active UI section (dashboard, timeline, classes, etc)
+    tasks: [],                    // Array of game development tasks
+    assets: [],                   // Array of game assets (graphics, audio, code, etc)
+    milestones: [],               // Array of project milestones with completion tracking
+    notes: [],                    // Array of note objects with categories, tags, and content
+    noteCategories: ['Ideas', 'To-Do', 'Research', 'Bugs', 'Design', 'Other'],  // Default note categories
+    theme: 'light',               // Current theme (light or dark)
+    classes: [],                  // Array of character/enemy class definitions
+    mechanics: [],                // Array of game mechanics
+    story: {                      // Comprehensive story/narrative data structure
+        acts: [],                 // Story acts for narrative structure
+        backgroundMap: null,      // Visual background image for story map
+        connectionWaypoints: {},  // Custom waypoints for story connections
+        characters: [],           // All story characters
+        locations: [],            // Story locations/settings
+        timeline: [],             // Historical/narrative timeline
+        conflicts: [],            // Story conflicts and tensions
+        themes: [],               // Thematic elements
+        items: [],                // Story items and artifacts
+        quests: []                // Quest definitions
     },
     
-    // Initialize from localStorage
+    /**
+     * Initializes application state on startup
+     * Loads saved data from localStorage for the current project
+     * Performs data migrations for backward compatibility
+     * Applies the saved theme
+     */
     init() {
         const storageKey = ProjectManager.getStorageKey('state');
         console.log('Loading state from:', storageKey);
@@ -217,10 +279,14 @@ const AppState = {
                     notes: parsed.notes?.length || 0,
                     classes: parsed.classes?.length || 0
                 });
+                
+                // Load main collections
                 this.tasks = parsed.tasks || [];
                 this.assets = parsed.assets || [];
                 this.milestones = parsed.milestones || [];
-                // Migrate old single note to new array format
+                
+                // ===== Notes Migration =====
+                // Convert old single-note string format to new array-based system
                 if (typeof parsed.notes === 'string' && parsed.notes) {
                     this.notes = [{
                         id: Utils.generateId(),
@@ -238,46 +304,78 @@ const AppState = {
                     this.notes = parsed.notes || [];
                 }
                 this.noteCategories = parsed.noteCategories || ['Ideas', 'To-Do', 'Research', 'Bugs', 'Design', 'Other'];
+                
+                // Load theme setting
                 this.theme = parsed.theme || 'light';
+                
+                // ===== Classes Migration =====
                 this.classes = parsed.classes || [];
-                // Migrate old classes to have classType
+                // Ensure all classes have classType property (for backward compatibility)
                 this.classes.forEach(cls => {
                     if (!cls.classType) {
-                        cls.classType = 'character'; // Default to character class for backwards compatibility
+                        cls.classType = 'character'; // Default to character class
                     }
                 });
+                
+                // Load game mechanics
                 this.mechanics = parsed.mechanics || [];
-                this.story = parsed.story || { acts: [], backgroundMap: null, connectionWaypoints: {}, characters: [], locations: [], timeline: [], conflicts: [], themes: [], items: [], quests: [] };
-                // Ensure all story properties exist
+                
+                // ===== Story/Narrative Data =====
+                this.story = parsed.story || { 
+                    acts: [], 
+                    backgroundMap: null, 
+                    connectionWaypoints: {}, 
+                    characters: [], 
+                    locations: [], 
+                    timeline: [], 
+                    conflicts: [], 
+                    themes: [], 
+                    items: [], 
+                    quests: [] 
+                };
+                
+                // Ensure all story properties exist (handle missing properties in old saves)
                 if (!this.story.backgroundMap) this.story.backgroundMap = null;
                 if (!this.story.connectionWaypoints) this.story.connectionWaypoints = {};
                 if (!this.story.characters) this.story.characters = [];
                 if (!this.story.items) this.story.items = [];
                 if (!this.story.quests) this.story.quests = [];
-                // Migrate old character classId to new classes array
+                
+                // ===== Character Migration =====
+                // Convert old single classId to new classes array format
                 this.story.characters.forEach(char => {
                     if (char.classId && !char.classes) {
                         char.classes = [{ classId: char.classId, priority: 5 }];
                         delete char.classId;
                     }
+                    // Ensure conflict resolution data exists
                     if (!char.conflictResolution) {
                         char.conflictResolution = {};
                     }
                 });
+                
+                // Ensure all story collections exist
                 if (!this.story.locations) this.story.locations = [];
                 if (!this.story.timeline) this.story.timeline = [];
                 if (!this.story.conflicts) this.story.conflicts = [];
                 if (!this.story.themes) this.story.themes = [];
+                
             } catch (e) {
                 console.error('Error loading saved state:', e);
             }
         } else {
             console.log('No saved state found for key:', storageKey);
         }
+        
+        // Apply the loaded/default theme to the UI
         this.applyTheme();
     },
     
-    // Save to localStorage
+    /**
+     * Persists all application state to localStorage
+     * Called after major changes to ensure data is not lost
+     * Saves all tasks, assets, notes, classes, mechanics, and story data
+     */
     save() {
         const storageKey = ProjectManager.getStorageKey('state');
         const stateToSave = {
@@ -300,13 +398,21 @@ const AppState = {
         localStorage.setItem(storageKey, JSON.stringify(stateToSave));
     },
     
-    // Theme management
+    /**
+     * Toggles between light and dark theme
+     * Updates the saved theme preference
+     */
     toggleTheme() {
         this.theme = this.theme === 'light' ? 'dark' : 'light';
         this.applyTheme();
         this.save();
     },
     
+    /**
+     * Applies the current theme to the UI
+     * Sets the data-theme attribute on the document body
+     * Updates the theme toggle button icon
+     */
     applyTheme() {
         document.body.setAttribute('data-theme', this.theme);
         const themeIcon = document.querySelector('.theme-icon');
@@ -319,11 +425,23 @@ const AppState = {
 // ============================================
 // Utility Functions
 // ============================================
+// Collection of helper functions used throughout the application
+// Provides common functionality for ID generation, date formatting, UI notifications, etc
 const Utils = {
+    /**
+     * Generates a unique ID for new items
+     * Uses timestamp and random string to ensure uniqueness
+     * @returns {string} A unique identifier
+     */
     generateId() {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
     },
     
+    /**
+     * Formats a date string for human-readable display
+     * @param {string} dateString - ISO format date string
+     * @returns {string} Formatted date (e.g. "Jan 15, 2024")
+     */
     formatDate(dateString) {
         if (!dateString) return '';
         // Handle date-only strings (YYYY-MM-DD) to avoid timezone issues
@@ -345,10 +463,16 @@ const Utils = {
         });
     },
     
-    // Returns true if the provided date (date-only or datetime) is before today (local date)
+    /**
+     * Checks if a given date is before today (ignores time component)
+     * Useful for identifying overdue items
+     * @param {string} dateString - Date in YYYY-MM-DD format or ISO datetime string
+     * @returns {boolean} True if date is before today
+     */
     isDateBeforeToday(dateString) {
         if (!dateString) return false;
         let d;
+        // Handle date-only strings (YYYY-MM-DD) to avoid timezone issues
         if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
             const [year, month, day] = dateString.split('-').map(Number);
             d = new Date(year, month - 1, day);
@@ -356,22 +480,36 @@ const Utils = {
             d = new Date(dateString);
         }
         if (isNaN(d)) return false;
+        
+        // Reset times to midnight for proper date comparison
         const today = new Date();
         today.setHours(0,0,0,0);
         d.setHours(0,0,0,0);
         return d < today;
     },
     
+    /**
+     * Escapes HTML special characters to prevent XSS attacks
+     * Converts user input to safe text for display in HTML
+     * @param {string} text - Raw text that may contain HTML characters
+     * @returns {string} HTML-escaped safe text
+     */
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     },
     
+    /**
+     * Converts basic Markdown syntax to HTML
+     * Supports headers (#, ##, ###), bold (**), italic (*), lists, and paragraphs
+     * @param {string} text - Markdown-formatted text
+     * @returns {string} HTML version of the markdown
+     */
     parseMarkdown(text) {
         let html = this.escapeHtml(text);
         
-        // Headers
+        // Headers (h1, h2, h3)
         html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
         html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
         html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
@@ -380,18 +518,25 @@ const Utils = {
         html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
         
-        // Lists
+        // Lists (lines starting with -)
         html = html.replace(/^\- (.+)$/gim, '<li>$1</li>');
         html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
         
-        // Paragraphs
+        // Paragraphs (double newlines)
         html = html.replace(/\n\n/g, '</p><p>');
         html = '<p>' + html + '</p>';
         
         return html;
     },
     
-    // Generate icon HTML for SVG icons
+    /**
+     * Generates HTML for an SVG icon with specified size
+     * All icons are stored in the /icons directory
+     * @param {string} path - Path to icon relative to /icons (e.g., "misc/link")
+     * @param {string} size - Size preset: 'small'(16px), 'medium'(20px), 'large'(24px), 'xlarge'(32px)
+     * @param {string} altText - Alt text for accessibility
+     * @returns {string} HTML img tag for the icon
+     */
     icon(path, size = 'medium', altText = '') {
         const sizes = {
             small: 16,
@@ -403,7 +548,12 @@ const Utils = {
         return `<img src="icons/${path}.svg" alt="${altText}" class="icon ${size}" width="${dimension}" height="${dimension}">`;
     },
     
-    // Render related items section
+    /**
+     * Renders a list of related items as clickable chips
+     * Each chip displays the item's icon, name, and category
+     * @param {Array} relatedItems - Array of related item objects {id, type}
+     * @returns {string} HTML string for the related items section
+     */
     renderRelatedItems(relatedItems) {
         if (!relatedItems || relatedItems.length === 0) {
             return '';
@@ -428,7 +578,13 @@ const Utils = {
         return html;
     },
 
-    // Render combined related + referenced-by list for a single consolidated view
+    /**
+     * Renders a consolidated view of all connections (both outgoing and incoming relationships)
+     * Shows direction indicators: → (outgoing), ← (incoming), ↔ (both)
+     * Deduplicates items that are both related and referenced
+     * @param {Object|string} item - Item object or item ID to get connections for
+     * @returns {string} HTML for the connections section or empty string if no connections
+     */
     renderConnections(item) {
         let itemObj = item;
         if (!itemObj || !itemObj.id) {
@@ -479,10 +635,17 @@ const Utils = {
 
         return `<div class="related-items-section"><div class="related-items-header"><h4><img src="icons/misc/link.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Related Items</h4></div><div class="related-items-list">${chips}</div></div>`;
     },
-    
-    // Render referenced-by section (optional excludeIds to avoid duplicates)
+    /**
+     * Renders items that reference the given item (inverse relationships)
+     * Shows items that point TO this item
+     * Optionally excludes specified IDs to avoid duplicates with renderConnections()
+     * @param {string} itemId - The ID of the item to find references for
+     * @param {Array} excludeIds - Array of IDs to exclude from the results
+     * @returns {string} HTML for the referenced-by section
+     */
     renderReferencedBy(itemId, excludeIds = []) {
         let references = RelationshipManager.getReferencedBy(itemId) || [];
+        // Filter out excluded IDs to prevent duplicate chips
         if (excludeIds && excludeIds.length > 0) {
             references = references.filter(r => !excludeIds.includes(r.id));
         }
@@ -507,16 +670,23 @@ const Utils = {
         return html;
     },
     
-    // Non-blocking toast notification (replaces alert())
+    /**
+     * Displays a temporary toast notification (non-blocking alternative to alert)
+     * Auto-dismisses after 2 seconds with fade animation
+     * Appears in center of screen with colored background based on type
+     * @param {string} message - The message to display
+     * @param {string} type - Notification type: 'success', 'error', 'warning', 'info'
+     */
     showToast(message, type = 'success') {
         const toast = document.createElement('div');
         const colors = {
-            success: 'linear-gradient(135deg, #10b981, #059669)',
-            error: 'linear-gradient(135deg, #ef4444, #dc2626)',
-            warning: 'linear-gradient(135deg, #f59e0b, #d97706)',
-            info: 'linear-gradient(135deg, #3b82f6, #2563eb)'
+            success: 'linear-gradient(135deg, #10b981, #059669)',  // Green
+            error: 'linear-gradient(135deg, #ef4444, #dc2626)',    // Red
+            warning: 'linear-gradient(135deg, #f59e0b, #d97706)',  // Orange
+            info: 'linear-gradient(135deg, #3b82f6, #2563eb)'      // Blue
         };
         
+        // Style the toast container
         toast.style.cssText = `
             position: fixed;
             top: 50%;
@@ -536,6 +706,7 @@ const Utils = {
         `;
         toast.textContent = message;
         
+        // Inject animation styles if not already present
         if (!document.getElementById('toastAnimation')) {
             const style = document.createElement('style');
             style.id = 'toastAnimation';
@@ -548,17 +719,26 @@ const Utils = {
             document.head.appendChild(style);
         }
         
+        // Display and auto-remove
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 2000);
     },
     
-    // Non-blocking confirm dialog (replaces confirm())
+    /**
+     * Displays a modal confirmation dialog (non-blocking alternative to confirm())
+     * User can confirm or cancel the action, or dismiss by clicking overlay
+     * Automatically blurs focused elements to prevent input issues
+     * @param {string} message - The confirmation message to display
+     * @param {Function} onConfirm - Callback function executed when user confirms
+     * @param {Function} onCancel - Optional callback executed when user cancels or dismisses
+     */
     showConfirm(message, onConfirm, onCancel = null) {
-        // Blur any focused element to prevent focus issues
+        // Blur any focused element to prevent focus-related issues
         if (document.activeElement) {
             document.activeElement.blur();
         }
         
+        // Create overlay backdrop (dark semi-transparent background)
         const overlay = document.createElement('div');
         overlay.style.cssText = `
             position: fixed;
@@ -574,6 +754,7 @@ const Utils = {
             animation: fadeIn 0.2s ease-out;
         `;
         
+        // Create dialog box
         const dialog = document.createElement('div');
         dialog.style.cssText = `
             background: var(--bg-primary);
@@ -584,6 +765,7 @@ const Utils = {
             animation: slideInUp 0.3s ease-out;
         `;
         
+        // Message text
         const messageText = document.createElement('div');
         messageText.style.cssText = `
             color: var(--text-primary);
@@ -824,12 +1006,25 @@ const Utils = {
 // ============================================
 // Universal Relationship Manager
 // ============================================
+// ============================================
+// Relationship Manager
+// ============================================
+// Manages cross-cutting relationships between all items in the application
+// Allows linking between notes, classes, mechanics, characters, locations, quests, etc
+// Provides search and navigation capabilities for related items across sections
+// Critical for maintaining data consistency when items reference each other
 const RelationshipManager = {
-    // Get all items across all sections
+    /**
+     * Retrieves all items across all sections in a normalized format
+     * Creates a unified view of all application data for relationship lookup
+     * Each item includes id, type, name, category, icon, section, and data reference
+     * @returns {Array} Array of all items with their metadata
+     */
     getAllItems() {
         const items = [];
         
-        // Notes
+        // ===== Notes =====
+        // Add all notes as relationship targets
         AppState.notes.forEach(note => {
             items.push({
                 id: note.id,
@@ -842,7 +1037,8 @@ const RelationshipManager = {
             });
         });
         
-        // Classes
+        // ===== Classes =====
+        // Add character and instance class definitions
         AppState.classes.forEach(cls => {
             items.push({
                 id: cls.id,
@@ -855,7 +1051,8 @@ const RelationshipManager = {
             });
         });
         
-        // Mechanics
+        // ===== Mechanics =====
+        // Add game mechanics
         AppState.mechanics.forEach(mechanic => {
             items.push({
                 id: mechanic.id,
@@ -868,7 +1065,8 @@ const RelationshipManager = {
             });
         });
         
-        // Story - Acts
+        // ===== Story - Acts & Scenes =====
+        // Add all acts and their contained scenes
         AppState.story.acts.forEach(act => {
             // Normalize act relationships to include all scene relationships
             const actRelatedItems = [];
@@ -878,7 +1076,7 @@ const RelationshipManager = {
                 actRelatedItems.push(...act.relatedItems);
             }
             
-            // Add all scenes as relationships
+            // Add all scenes as relationships and their content
             if (act.scenes && Array.isArray(act.scenes)) {
                 act.scenes.forEach(scene => {
                     // Add the scene itself
@@ -1685,7 +1883,15 @@ const FileStorage = {
 // ============================================
 // Navigation System
 // ============================================
+// Handles switching between different application sections (dashboard, tasks, story, etc)
+// Manages active state of navigation buttons and visibility of content sections
+// Updates AppState.currentSection to track which view user is currently viewing
 const Navigation = {
+    /**
+     * Initializes navigation system
+     * Attaches click listeners to all navigation buttons
+     * Each button should have data-section attribute specifying target section
+     */
     init() {
         const navButtons = document.querySelectorAll('.nav-item');
         navButtons.forEach(btn => {
@@ -1696,32 +1902,46 @@ const Navigation = {
         });
     },
     
+    /**
+     * Switches to a different application section
+     * Updates navigation UI to highlight active section
+     * Shows/hides content areas accordingly
+     * Refreshes data for the new section
+     * @param {string} sectionName - The name of the section to switch to
+     *                                (dashboard, notes, timeline, classes, mechanics, story, quests, assets, milestones)
+     */
     switchSection(sectionName) {
-        // Update nav buttons
+        // ===== Update Navigation Button States =====
+        // Remove active state from all buttons
         document.querySelectorAll('.nav-item').forEach(btn => {
             btn.classList.remove('active');
             btn.removeAttribute('aria-current');
         });
         
+        // Highlight the active navigation button
         const activeBtn = document.querySelector(`[data-section="${sectionName}"]`);
         if (activeBtn) {
             activeBtn.classList.add('active');
             activeBtn.setAttribute('aria-current', 'page');
         }
         
-        // Update sections
+        // ===== Update Content Section Visibility =====
+        // Hide all sections
         document.querySelectorAll('.content-section').forEach(section => {
             section.classList.remove('active');
         });
         
+        // Show the selected section
         const activeSection = document.getElementById(sectionName);
         if (activeSection) {
             activeSection.classList.add('active');
         }
         
+        // Update state tracking
         AppState.currentSection = sectionName;
         
-        // Refresh section data
+        // ===== Refresh Section Data =====
+        // Call appropriate manager's render method to refresh displayed data
         if (sectionName === 'dashboard') Dashboard.refresh();
         if (sectionName === 'notes') NotesManager.render();
        
@@ -1731,24 +1951,33 @@ const Navigation = {
 // ============================================
 // Modal System
 // ============================================
+// Manages modal dialogs for editing items
+// Provides consistent UI for create/edit workflows
+// Prevents accidental data loss with unsaved changes warning
+// Keyboard support (ESC to close with confirmation)
 const Modal = {
-    overlay: null,
-    body: null,
+    overlay: null,  // Dark background overlay element
+    body: null,     // Modal content container
     
+    /**
+     * Initializes modal system
+     * Attaches event listeners for close button and keyboard shortcuts
+     * Sets up ESC key handling and click-outside prevention
+     */
     init() {
         this.overlay = document.getElementById('modalOverlay');
         this.body = document.getElementById('modalBody');
         
-        // Close button
+        // Close button listener
         document.getElementById('modalClose').addEventListener('click', () => this.confirmClose());
         
         // Prevent accidental closes - user must explicitly Save or Cancel
-        // Click outside does nothing
+        // Click outside modal does nothing (user must use buttons)
         this.overlay.addEventListener('click', (e) => {
-            // Do nothing - user must use Save or Cancel buttons
+            // Intentionally empty - don't close on background click
         });
         
-        // ESC key shows confirmation
+        // ESC key shows confirmation to prevent accidental loss of unsaved changes
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.overlay.classList.contains('active')) {
                 this.confirmClose();
@@ -1756,24 +1985,40 @@ const Modal = {
         });
     },
     
+    /**
+     * Confirms whether user wants to close modal without saving
+     * Shows warning if form contains unsaved input
+     * Silently closes if no form content present
+     */
     confirmClose() {
-        // Ask user to confirm if they want to close without saving
+        // Check if modal contains any form inputs
         const hasContent = this.body.querySelector('input, textarea, select');
         if (hasContent) {
+            // Ask user to confirm - unsaved changes would be lost
             Utils.showConfirm('Are you sure you want to close? Any unsaved changes will be lost.', () => {
                 this.close();
             });
         } else {
+            // No form inputs, safe to close silently
             this.close();
         }
     },
     
+    /**
+     * Opens modal dialog with specified content
+     * Sets up overlay and displays content in modal body
+     * Clears previous content and resets state
+     * @param {string} content - HTML content to display in modal
+     */
     open(content) {
         // Ensure clean state before opening
         this.overlay.style.display = '';
         document.body.style.pointerEvents = '';
         
+        // Insert content into modal
         this.body.innerHTML = content;
+        
+        // Show modal with CSS class
         this.overlay.classList.add('active');
         this.overlay.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
@@ -1831,10 +2076,20 @@ setInterval(() => {
 // ============================================
 // Dashboard
 // ============================================
+// Main overview page showing project status, statistics, and quick actions
+// Displays task progress, asset counts, milestone status, productivity metrics
+// Includes calendar view for task scheduling and deadline visualization
+// Provides quick access to recent items and upcoming milestones
 const Dashboard = {
+    /**
+     * Initializes dashboard calendar navigation
+     * Attaches listeners to previous/next month buttons
+     * Updates calendar display when user navigates months
+     */
     init() {
-        // Calendar navigation
+        // Calendar navigation controls
         document.getElementById('calendarPrevMonth')?.addEventListener('click', () => {
+            // Go to previous month (handles year wraparound)
             this.currentCalendarMonth--;
             if (this.currentCalendarMonth < 0) {
                 this.currentCalendarMonth = 11;
@@ -1844,6 +2099,7 @@ const Dashboard = {
         });
         
         document.getElementById('calendarNextMonth')?.addEventListener('click', () => {
+            // Go to next month (handles year wraparound)
             this.currentCalendarMonth++;
             if (this.currentCalendarMonth > 11) {
                 this.currentCalendarMonth = 0;
@@ -1853,12 +2109,38 @@ const Dashboard = {
         });
     },
     
+    /**
+     * Updates all dashboard statistics
+     * Alias for refresh() for consistency
+     */
     updateStats() {
         this.refresh();
     },
     
+    /**
+     * Refreshes dashboard display with current project data
+     * Updates task counts, asset counts, progress metrics
+     * Recalculates statistics and displays recent items
+     * Called when switching to dashboard or after data changes
+     */
     refresh() {
-        // Update statistics
+        // ===== Task Statistics =====
+        // Count active and overdue tasks
+        const activeTasks = AppState.tasks.filter(t => !t.completed).length;
+        const overdueTasks = AppState.tasks.filter(t => !t.completed && t.dueDate && Utils.isDateBeforeToday(t.dueDate)).length;
+        
+        // Display task count with overdue indicator if needed
+        document.getElementById('activeTasks').textContent = activeTasks;
+        if (overdueTasks > 0) {
+            document.getElementById('activeTasks').innerHTML = `${activeTasks} <span style="color: var(--danger-color); font-size: 0.8em;">(${overdueTasks} overdue)</span>`;
+        }
+        
+        // ===== Asset & Milestone Counts =====
+        document.getElementById('totalAssets').textContent = AppState.assets.length;
+        document.getElementById('totalMilestones').textContent = AppState.milestones.length;
+        document.getElementById('totalNotes').textContent = Array.isArray(AppState.notes) ? AppState.notes.filter(n => !n.archived).length : 0;
+        
+        // ===== Reminder & Calendar Stats =====
         const activeTasks = AppState.tasks.filter(t => !t.completed).length;
         const overdueTasks = AppState.tasks.filter(t => !t.completed && t.dueDate && Utils.isDateBeforeToday(t.dueDate)).length;
         document.getElementById('activeTasks').textContent = activeTasks;
@@ -2284,18 +2566,47 @@ const Dashboard = {
             };
             list.appendChild(li);
         });
+    },
+
+    // Open task for editing
+    openTask(taskId) {
+        const task = AppState.tasks.find(t => t.id === taskId);
+        if (!task) return;
+        Modal.close();
+        Navigation.switchSection('tasks');
+        TaskManager.render();
+        setTimeout(() => TaskManager.openAddModal(task), 50);
+    },
+
+    // Open milestone for editing
+    openMilestone(milestoneId) {
+        const milestone = AppState.milestones.find(m => m.id === milestoneId);
+        if (!milestone) return;
+        Modal.close();
+        Navigation.switchSection('milestones');
+        MilestonePlanner.render();
+        setTimeout(() => MilestonePlanner.openAddModal(milestone), 50);
     }
 };
 
 // ============================================
 // Task Manager
 // ============================================
+// Manages game development tasks/to-do items
+// Supports filtering by status, sorting by various criteria
+// Tracks task completion, due dates, priorities, and related items
+// Provides create/edit/delete workflows for task management
 const TaskManager = {
-    currentFilter: 'all',
-    sortBy: 'createdAt',
-    sortOrder: 'desc',
+    currentFilter: 'all',  // Filter: all, active, completed
+    sortBy: 'createdAt',   // Sort field: createdAt, dueDate, priority, title
+    sortOrder: 'desc',     // Sort direction: asc, desc
     
+    /**
+     * Initializes task manager
+     * Attaches event listeners to UI controls
+     */
     init() {
+
         document.getElementById('addTaskBtn').addEventListener('click', () => this.openAddModal());
         
         // Filter buttons
@@ -2494,11 +2805,19 @@ const TaskManager = {
 // ============================================
 // Asset Tracker
 // ============================================
+// Manages game assets (graphics, audio, code, data files, etc)
+// Tracks asset types, completion status, file paths, and related items
+// Provides organization by category and progress visualization
+// Supports asset export and bulk operations
 const AssetTracker = {
-    currentFilter: 'all',
-    filesToRemove: [],
-    selectedFiles: [],
+    currentFilter: 'all',   // Filter by asset type or status
+    filesToRemove: [],      // Queue of files to remove
+    selectedFiles: [],      // Currently selected assets
     
+    /**
+     * Initializes asset tracker
+     * Attaches event listeners to asset management buttons and filters
+     */
     init() {
         document.getElementById('addAssetBtn').addEventListener('click', () => this.openAddModal());
         document.getElementById('exportAssetsBtn').addEventListener('click', () => this.openExportModal());
@@ -3618,9 +3937,18 @@ const AssetTracker = {
 // ============================================
 // Classes Manager
 // ============================================
+// Manages character and instance class definitions
+// Supports two class types: character classes (archetypes) and instance classes (individual instantiations)
+// Includes class comparison tool and game balance testing utilities
+// Tracks class attributes, skills, and formulas for game mechanics
 const ClassesManager = {
-    currentFilter: 'all', // 'all', 'character', 'instance'
+    currentFilter: 'all', // Filter: 'all', 'character', 'instance'
     
+    /**
+     * Initializes classes manager
+     * Attaches listeners to add/edit buttons and filtering controls
+     * Includes advanced tools like comparison and balance testing
+     */
     init() {
         document.getElementById('addClassBtn').addEventListener('click', () => this.openAddModal());
         document.getElementById('compareClassesBtn')?.addEventListener('click', () => this.openComparisonTool());
@@ -3634,6 +3962,11 @@ const ClassesManager = {
         this.render();
     },
     
+    /**
+     * Sets the current filter for class display
+     * Filters classes by type (character, instance) or shows all
+     * @param {string} filterType - Filter type: 'all', 'character', 'instance'
+     */
     setFilter(filterType) {
         this.currentFilter = filterType;
         
@@ -4818,15 +5151,23 @@ const ClassesManager = {
 // ============================================
 // Game Mechanics Manager
 // ============================================
+// Manages game mechanics definitions and rules
+// Supports categorization, status tracking, priority levels, and complexity ratings
+// Allows mechanics to be linked to classes, tasks, and other game elements
+// Provides filtering and organization tools for large mechanic libraries
 const MechanicsManager = {
     filters: {
-        category: '',
-        status: '',
-        priority: '',
-        complexity: ''
+        category: '',   // Filter by category/type
+        status: '',     // Filter by status
+        priority: '',   // Filter by priority
+        complexity: ''  // Filter by complexity level
     },
-    sortBy: 'name',
+    sortBy: 'name',  // Sort field
     
+    /**
+     * Initializes mechanics manager
+     * Attaches listeners to add button and filter controls
+     */
     init() {
         document.getElementById('addMechanicBtn').addEventListener('click', () => this.openAddModal());
         
@@ -5514,12 +5855,24 @@ const MechanicsManager = {
 // ============================================
 // Milestone Planner
 // ============================================
+// Manages project milestones and major deliverables
+// Tracks milestone progress, due dates, and task relationships
+// Provides progress visualization and deadline tracking
+// Supports milestone phases and sequential tracking
 const MilestonePlanner = {
+    /**
+     * Initializes milestone planner
+     * Attaches listeners to add milestone button
+     */
     init() {
         document.getElementById('addMilestoneBtn').addEventListener('click', () => this.openAddModal());
         this.render();
     },
     
+    /**
+     * Opens modal for creating or editing a milestone
+     * @param {Object} milestoneToEdit - Optional milestone object for editing
+     */
     openAddModal(milestoneToEdit = null) {
         const isEdit = milestoneToEdit !== null;
         const formHtml = `
@@ -5635,30 +5988,48 @@ const MilestonePlanner = {
 // ============================================
 // Notes Manager
 // ============================================
+// Manages rich note-taking with categories and tags
+// Supports note organization by category, color coding, and flexible tagging
+// Provides search, filter, and sort capabilities
+// Includes archive feature and related item linking
+// Can display notes in grid or list view
 const NotesManager = {
-    currentView: 'grid',
-    currentFilter: {
-        search: '',
-        category: '',
-        tag: '',
-        sort: 'modified'
+    currentView: 'grid',  // Display mode: 'grid' or 'list'
+    currentFilter: {      // Active filters
+        search: '',       // Text search
+        category: '',     // Filter by category
+        tag: '',          // Filter by tag
+        sort: 'modified'  // Sort: modified, created, title, category
     },
-    noteColors: ['', '#FFB3B3', '#B3D9FF', '#B3FFB3', '#FFE5B3', '#FFB3FF', '#E0E0E0'],
+    noteColors: ['', '#FFB3B3', '#B3D9FF', '#B3FFB3', '#FFE5B3', '#FFB3FF', '#E0E0E0'],  // Color palette for notes
     
+    /**
+     * Initializes notes manager
+     * Attaches listeners to search, filter, and sort controls
+     * Sets up view toggle between grid and list
+     */
     init() {
         document.getElementById('addNoteBtn').addEventListener('click', () => this.openNoteModal());
+        
+        // Search input listener
         document.getElementById('notesSearchInput').addEventListener('input', (e) => {
             this.currentFilter.search = e.target.value.toLowerCase();
             this.render();
         });
+        
+        // Category filter
         document.getElementById('notesCategoryFilter').addEventListener('change', (e) => {
             this.currentFilter.category = e.target.value;
             this.render();
         });
+        
+        // Tag filter
         document.getElementById('notesTagFilter').addEventListener('change', (e) => {
             this.currentFilter.tag = e.target.value;
             this.render();
         });
+        
+        // Sort option
         document.getElementById('notesSortFilter').addEventListener('change', (e) => {
             this.currentFilter.sort = e.target.value;
             this.render();
@@ -6500,10 +6871,21 @@ const NotesManager = {
 // ============================================
 // Story/Narrative Manager
 // ============================================
+// Manages comprehensive story and narrative elements
+// Tracks acts, scenes, characters, locations, timeline, conflicts, and themes
+// Supports character relationships, role assignments, and narrative flow
+// Includes visual story mapping and connection visualization
+// Manages all story-related data with rich editing capabilities
 const StoryManager = {
-    currentView: 'list',
+    currentView: 'list',  // Current tab view
     
+    /**
+     * Initializes story manager
+     * Attaches listeners to add buttons for all story elements
+     * Sets up filters and tab switching for different story views
+     */
     init() {
+        // Add buttons for various story elements
         document.getElementById('addActBtn').addEventListener('click', () => this.openAddActModal());
         document.getElementById('addCharacterBtn')?.addEventListener('click', () => this.openAddCharacterModal());
         document.getElementById('addLocationBtn')?.addEventListener('click', () => this.openAddLocationModal());
@@ -6512,13 +6894,13 @@ const StoryManager = {
         document.getElementById('addThemeBtn')?.addEventListener('click', () => this.openAddThemeModal());
         document.getElementById('addStoryItemBtn')?.addEventListener('click', () => this.openAddItemModal());
         
-        // Filters
+        // Filters for different story elements
         document.getElementById('characterRoleFilter')?.addEventListener('change', () => this.renderCharacters());
         document.getElementById('locationTypeFilter')?.addEventListener('change', () => this.renderLocations());
         document.getElementById('timelineShowScenes')?.addEventListener('change', () => this.renderTimeline());
         document.getElementById('itemsSearchInput')?.addEventListener('input', (e) => this.filterItems(e.target.value));
         
-        // Tab switching
+        // Story view tabs - switch between acts, characters, locations, etc
         document.querySelectorAll('.story-tab').forEach(tab => {
             tab.addEventListener('click', (e) => {
                 document.querySelectorAll('.story-tab').forEach(t => t.classList.remove('active'));
@@ -9916,9 +10298,18 @@ const StoryManager = {
 // ============================================
 // Quest Manager
 // ============================================
+// Manages quest definitions, objectives, and quest chains
+// Supports quest types (main, side, optional) and status tracking
+// Tracks quest givers, rewards, and related story elements
+// Provides search, filtering, and quest organization tools
+// Links quests to characters and story progression
 const QuestManager = {
+    /**
+     * Initializes quest manager
+     * Ensures quests array exists and attaches listeners to quest controls
+     */
     init() {
-        // Initialize quests array if it doesn't exist
+        // Initialize quests array if it doesn't exist (for new projects)
         if (!AppState.story.quests) {
             AppState.story.quests = [];
         }
@@ -9928,21 +10319,22 @@ const QuestManager = {
             this.openAddModal();
         });
         
-        // Search filter
+        // Search/filter listeners
         document.getElementById('questsSearchInput')?.addEventListener('input', (e) => {
             this.filterQuests(e.target.value);
         });
         
-        // Type filter
+        // Quest type filter
         document.getElementById('questTypeFilter')?.addEventListener('change', () => {
             this.renderQuests();
         });
         
-        // Status filter
+        // Quest status filter
         document.getElementById('questStatusFilter')?.addEventListener('change', () => {
             this.renderQuests();
         });
         
+        // Initial render
         this.renderQuests();
     },
     
@@ -12264,21 +12656,32 @@ END OF STORY MAP FEATURE - DISABLED */
 // ============================================
 // Search System
 // ============================================
+// Provides global search across all items and sections
+// Searches notes, tasks, characters, locations, quests, classes, mechanics, etc
+// Includes debounced input for performance and keyboard navigation
+// Results link directly to items in their respective sections
+// Supports quick filtering and navigation
 const Search = {
-    currentResults: null,
-    selectedIndex: -1,
-    resultItems: [],
+    currentResults: null,     // Current search results
+    selectedIndex: -1,        // Currently selected result index
+    resultItems: [],          // Array of result DOM elements
 
+    /**
+     * Initializes search system
+     * Attaches listeners to search input with debouncing
+     * Sets up keyboard navigation and result interaction
+     */
     init() {
         const searchInput = document.getElementById('searchInput');
         if (!searchInput) return;
 
+        // Debounced search to prevent excessive lookups
         let searchTimeout;
         searchInput.addEventListener('input', (e) => {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
                 this.performSearch(e.target.value);
-            }, 300); // Debounce search
+            }, 300); // 300ms debounce delay
         });
 
         // Clear search button
@@ -12290,7 +12693,7 @@ const Search = {
             });
         }
 
-        // Keyboard navigation
+        // Keyboard navigation (arrow keys for result selection)
         searchInput.addEventListener('keydown', (e) => {
             const resultsContainer = document.getElementById('searchResults');
             if (!resultsContainer || resultsContainer.style.display === 'none') return;
@@ -13365,32 +13768,49 @@ const RelationshipFilter = {
 // ============================================
 // Data Manager (Export/Import)
 // ============================================
+// Handles data export and import operations
+// Supports multiple formats: JSON, ZIP archives, and documentation
+// Provides backup/restore functionality for project data
+// Allows sharing projects with other users
+// Includes data validation on import
 const DataManager = {
+    /**
+     * Initializes data manager
+     * Attaches listeners to export/import buttons
+     * Sets up file input handling for imports
+     */
     init() {
+        // Export buttons
         const exportDocBtn = document.getElementById('exportDocumentationBtn');
         const exportJSONBtn = document.getElementById('exportJSONBtn');
         const exportBtn = document.getElementById('exportDataBtn');
+        
+        // Import controls
         const importBtn = document.getElementById('importDataBtn');
         const importFileInput = document.getElementById('importFileInput');
         
+        // Documentation export
         if (exportDocBtn) {
             exportDocBtn.addEventListener('click', () => DocumentationExporter.export());
         }
         
+        // JSON export
         if (exportJSONBtn) {
             exportJSONBtn.addEventListener('click', () => this.exportJSON());
         }
         
+        // Full data export (ZIP)
         if (exportBtn) {
             exportBtn.addEventListener('click', () => this.exportData());
         }
         
+        // Data import
         if (importBtn && importFileInput) {
             importBtn.addEventListener('click', () => importFileInput.click());
             importFileInput.addEventListener('change', (e) => {
                 if (e.target.files && e.target.files[0]) {
                     const file = e.target.files[0];
-                    // Check if it's JSON or ZIP
+                    // Route to appropriate importer based on file type
                     if (file.name.toLowerCase().endsWith('.json')) {
                         this.importJSON(file);
                     } else {
@@ -13401,6 +13821,10 @@ const DataManager = {
         }
     },
     
+    /**
+     * Exports entire project as downloadable ZIP file
+     * Includes all project data and metadata
+     */
     async exportData() {
         try {
             // Show loading notification

@@ -3237,30 +3237,61 @@ const AssetTracker = {
             return;
         }
         
+        const zip = new JSZip();
         let totalFiles = 0;
+        
         for (const asset of assets) {
             if (asset.files && asset.files.length > 0) {
                 for (const fileData of asset.files) {
                     const storedFile = await FileStorage.getFile(fileData.id);
-                    if (storedFile) {
-                        const url = URL.createObjectURL(storedFile.file);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `${asset.name}_${fileData.fileName}`;
-                        a.click();
-                        URL.revokeObjectURL(url);
+                    if (storedFile && storedFile.file) {
+                        // Organize by asset type in folders
+                        const folderPath = `${asset.type}/${asset.name}`;
+                        zip.file(`${folderPath}/${fileData.fileName}`, storedFile.file);
                         totalFiles++;
-                        await new Promise(resolve => setTimeout(resolve, 150));
                     }
                 }
             }
         }
         
+        if (totalFiles === 0) {
+            Utils.showToast('No asset files found to export', 'warning');
+            return;
+        }
+        
+        // Generate and download ZIP
+        const blob = await zip.generateAsync({ 
+            type: 'blob',
+            compression: 'DEFLATE',
+            compressionOptions: { level: 6 }
+        });
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const dateStr = new Date().toISOString().split('T')[0];
+        const currentProject = ProjectManager.getCurrentProject();
+        const projectName = currentProject?.name || 'Untitled-Project';
+        const safeName = projectName.replace(/[^a-zA-Z0-9-_]/g, '-');
+        a.download = `${safeName}-All-Assets-${dateStr}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
         Utils.showToast(`Exported ${totalFiles} file(s) from ${assets.length} asset(s)`, 'success');
     },
     
     openExportByTypeModal() {
-        const types = ['image', 'audio', 'video', 'model', 'document', 'script', 'other'];
+        const types = [
+            { type: 'image', icon: 'asset/sprite' },
+            { type: 'audio', icon: 'asset/audio' },
+            { type: 'video', icon: 'asset/video' },
+            { type: 'model', icon: 'asset/model' },
+            { type: 'document', icon: 'asset/file' },
+            { type: 'script', icon: 'asset/file' },
+            { type: 'other', icon: 'misc/package' }
+        ];
         
         const formHtml = `
             <div class="modal-form">
@@ -3269,12 +3300,13 @@ const AssetTracker = {
                 
                 <div class="form-group">
                     <div class="checkbox-group">
-                        ${types.map(type => {
-                            const count = AppState.assets.filter(a => a.type === type).length;
+                        ${types.map(typeObj => {
+                            const count = AppState.assets.filter(a => a.type === typeObj.type).length;
                             return `
                                 <label class="checkbox-label">
-                                    <input type="checkbox" name="export_type" value="${type}" ${count > 0 ? '' : 'disabled'}>
-                                    <span>${type.charAt(0).toUpperCase() + type.slice(1)} (${count})</span>
+                                    <input type="checkbox" name="export_type" value="${typeObj.type}" ${count > 0 ? '' : 'disabled'}>
+                                    <img src="icons/${typeObj.icon}.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 8px;">
+                                    <span>${typeObj.type.charAt(0).toUpperCase() + typeObj.type.slice(1)} (${count})</span>
                                 </label>
                             `;
                         }).join('')}
@@ -3309,24 +3341,53 @@ const AssetTracker = {
     async exportAssetsByType(types) {
         const assets = AppState.assets.filter(a => types.includes(a.type));
         
+        if (assets.length === 0) {
+            Utils.showToast('No assets found for selected types', 'warning');
+            return;
+        }
+        
+        const zip = new JSZip();
         let totalFiles = 0;
+        
         for (const asset of assets) {
             if (asset.files && asset.files.length > 0) {
                 for (const fileData of asset.files) {
                     const storedFile = await FileStorage.getFile(fileData.id);
-                    if (storedFile) {
-                        const url = URL.createObjectURL(storedFile.file);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `${asset.type}_${asset.name}_${fileData.fileName}`;
-                        a.click();
-                        URL.revokeObjectURL(url);
+                    if (storedFile && storedFile.file) {
+                        // Organize by asset type in folders
+                        const folderPath = `${asset.type}/${asset.name}`;
+                        zip.file(`${folderPath}/${fileData.fileName}`, storedFile.file);
                         totalFiles++;
-                        await new Promise(resolve => setTimeout(resolve, 150));
                     }
                 }
             }
         }
+        
+        if (totalFiles === 0) {
+            Utils.showToast('No asset files found for selected types', 'warning');
+            return;
+        }
+        
+        // Generate and download ZIP
+        const blob = await zip.generateAsync({ 
+            type: 'blob',
+            compression: 'DEFLATE',
+            compressionOptions: { level: 6 }
+        });
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const dateStr = new Date().toISOString().split('T')[0];
+        const currentProject = ProjectManager.getCurrentProject();
+        const projectName = currentProject?.name || 'Untitled-Project';
+        const safeName = projectName.replace(/[^a-zA-Z0-9-_]/g, '-');
+        const typesStr = types.join('-');
+        a.download = `${safeName}-Assets-${typesStr}-${dateStr}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
         
         Utils.showToast(`Exported ${totalFiles} file(s) from ${assets.length} asset(s)`, 'success');
     },
@@ -3346,7 +3407,7 @@ const AssetTracker = {
                     <div class="linked-items-section" style="max-height: 400px; overflow-y: auto;">
                         ${characters.length > 0 ? `
                             <div class="link-section">
-                                <h5>👤 Characters</h5>
+                                <h5><img src="icons/misc/user.svg" alt="" width="16" height="16" style="vertical-align: middle;"> Characters</h5>
                                 <div class="checkbox-group">
                                     ${characters.map(char => {
                                         const assetCount = AppState.assets.filter(a => 
@@ -3365,7 +3426,7 @@ const AssetTracker = {
                         
                         ${locations.length > 0 ? `
                             <div class="link-section">
-                                <h5>📍 Locations</h5>
+                                <h5><img src="icons/story/location.svg" alt="" width="16" height="16" style="vertical-align: middle;"> Locations</h5>
                                 <div class="checkbox-group">
                                     ${locations.map(loc => {
                                         const assetCount = AppState.assets.filter(a => 
@@ -3384,7 +3445,7 @@ const AssetTracker = {
                         
                         ${items.length > 0 ? `
                             <div class="link-section">
-                                <h5>📦 Items</h5>
+                                <h5><img src="icons/misc/package.svg" alt="" width="16" height="16" style="vertical-align: middle;"> Items</h5>
                                 <div class="checkbox-group">
                                     ${items.map(item => {
                                         const assetCount = AppState.assets.filter(a => 
@@ -3403,7 +3464,7 @@ const AssetTracker = {
                         
                         ${quests.length > 0 ? `
                             <div class="link-section">
-                                <h5>🎯 Quests</h5>
+                                <h5><img src="icons/misc/gameplay.svg" alt="" width="16" height="16" style="vertical-align: middle;"> Quests</h5>
                                 <div class="checkbox-group">
                                     ${quests.map(quest => {
                                         const assetCount = AppState.assets.filter(a => 
@@ -3470,24 +3531,77 @@ const AssetTracker = {
             return;
         }
         
+        const zip = new JSZip();
         let totalFiles = 0;
+        
+        // Get story element names for folder structure
+        const getElementName = (type, id) => {
+            let item;
+            switch(type) {
+                case 'character':
+                    item = AppState.story?.characters?.find(c => c.id === id);
+                    return item?.name || 'Unknown';
+                case 'location':
+                    item = AppState.story?.locations?.find(l => l.id === id);
+                    return item?.name || 'Unknown';
+                case 'item':
+                    item = AppState.story?.items?.find(i => i.id === id);
+                    return item?.name || 'Unknown';
+                case 'quest':
+                    item = AppState.story?.quests?.find(q => q.id === id);
+                    return item?.title || 'Unknown';
+                default:
+                    return 'Unknown';
+            }
+        };
+        
         for (const asset of matchingAssets) {
             if (asset.files && asset.files.length > 0) {
+                // Find which story elements this asset is linked to
+                const linkedElements = asset.relatedItems.filter(link => 
+                    elementMap[link.type] && elementMap[link.type].includes(link.id)
+                );
+                
                 for (const fileData of asset.files) {
                     const storedFile = await FileStorage.getFile(fileData.id);
-                    if (storedFile) {
-                        const url = URL.createObjectURL(storedFile.file);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `${asset.name}_${fileData.fileName}`;
-                        a.click();
-                        URL.revokeObjectURL(url);
+                    if (storedFile && storedFile.file) {
+                        // Create folder for each linked story element
+                        linkedElements.forEach(link => {
+                            const elementName = getElementName(link.type, link.id);
+                            const safeName = elementName.replace(/[^a-zA-Z0-9-_]/g, '-');
+                            const folderPath = `${link.type}/${safeName}/${asset.name}`;
+                            zip.file(`${folderPath}/${fileData.fileName}`, storedFile.file);
+                        });
                         totalFiles++;
-                        await new Promise(resolve => setTimeout(resolve, 150));
                     }
                 }
             }
         }
+        
+        if (totalFiles === 0) {
+            Utils.showToast('No asset files found for selected story elements', 'warning');
+            return;
+        }
+        
+        // Generate and download ZIP
+        const blob = await zip.generateAsync({ 
+            type: 'blob',
+            compression: 'DEFLATE',
+            compressionOptions: { level: 6 }
+        });
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const dateStr = new Date().toISOString().split('T')[0];
+        const currentProject = ProjectManager.getCurrentProject();
+        const projectName = currentProject?.name || 'Untitled-Project';
+        const safeName = projectName.replace(/[^a-zA-Z0-9-_]/g, '-');
+        a.download = `${safeName}-Story-Assets-${dateStr}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
         
         Utils.showToast(`Exported ${totalFiles} file(s) from ${matchingAssets.length} asset(s)`, 'success');
     },
@@ -13367,6 +13481,23 @@ const Search = {
                 .map(m => {
                     let score = calculateScore(m, 'name', 'description', 'relatedClasses');
                     if (m.implementation && m.implementation.toLowerCase().includes(q)) score += 50;
+                    
+                    // Search through tests
+                    if (m.tests && Array.isArray(m.tests)) {
+                        m.tests.forEach(test => {
+                            const testDesc = typeof test === 'string' ? test : test.description;
+                            if (testDesc && testDesc.toLowerCase().includes(q)) score += 30;
+                        });
+                    }
+                    
+                    // Search through prototypes
+                    if (m.prototypes && Array.isArray(m.prototypes)) {
+                        m.prototypes.forEach(proto => {
+                            if (proto.name && proto.name.toLowerCase().includes(q)) score += 40;
+                            if (proto.notes && proto.notes.toLowerCase().includes(q)) score += 20;
+                        });
+                    }
+                    
                     return { item: m, score };
                 })
                 .filter(r => r.score > 0)
@@ -14081,7 +14212,10 @@ const DataManager = {
             const a = document.createElement('a');
             a.href = url;
             const timestamp = new Date().toISOString().split('T')[0];
-            a.download = `Forgeon-Backup-${timestamp}.zip`;
+            const currentProject = ProjectManager.getCurrentProject();
+            const projectName = currentProject?.name || 'Untitled-Project';
+            const safeName = projectName.replace(/[^a-zA-Z0-9-_]/g, '-');
+            a.download = `${safeName}-Backup-${timestamp}.zip`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -14351,7 +14485,10 @@ const DataManager = {
             const a = document.createElement('a');
             a.href = url;
             const dateStr = new Date().toISOString().split('T')[0];
-            a.download = `Forgeon-Design-${dateStr}.json`;
+            const currentProject = ProjectManager.getCurrentProject();
+            const projectName = currentProject?.name || 'Untitled-Project';
+            const safeName = projectName.replace(/[^a-zA-Z0-9-_]/g, '-');
+            a.download = `${safeName}-Design-${dateStr}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -14402,9 +14539,8 @@ const DataManager = {
                     })()
                 };
                 
-                const confirmMessage = 
-                    `⚠️ This will replace ALL current data!\n\n` +
-                    `Import contains:\n` +
+                const importMessage = 
+                    `Import file contains:\n` +
                     `• ${counts.tasks} tasks\n` +
                     `• ${counts.assets} assets (files not included)\n` +
                     `• ${counts.milestones} milestones\n` +
@@ -14421,66 +14557,63 @@ const DataManager = {
                     `• ${counts.acts} acts\n` +
                     `• ${counts.scenes} scenes\n\n` +
                     `Exported: ${imported.exportDate}\n\n` +
+                    `New items will be merged with your current data (no duplicates).\n\n` +
                     `Continue with import?`;
                 
-                Utils.showConfirm(confirmMessage, () => {
-                    // Import data
-                    AppState.tasks = data.tasks || [];
-                    AppState.assets = data.assets || [];
-                    AppState.milestones = data.milestones || [];
-                    AppState.notes = (Array.isArray(data.notes) ? data.notes : []);
-                    AppState.theme = data.theme || 'light';
-                    AppState.classes = data.classes || [];
-                    AppState.mechanics = data.mechanics || [];
+                if (confirm(importMessage)) {
+                    // Merge mode - add imported items without duplicates
+                    const mergeArrays = (current, imported, idField = 'id') => {
+                        const merged = [...current];
+                        const existingIds = new Set(current.map(item => item[idField]));
+                        imported.forEach(item => {
+                            if (!existingIds.has(item[idField])) {
+                                merged.push(item);
+                            }
+                        });
+                        return merged;
+                    };
                     
-                    // Handle both old and new story structure
+                    AppState.tasks = mergeArrays(AppState.tasks, data.tasks || []);
+                    AppState.assets = mergeArrays(AppState.assets, data.assets || []);
+                    AppState.milestones = mergeArrays(AppState.milestones, data.milestones || []);
+                    AppState.notes = mergeArrays(AppState.notes, Array.isArray(data.notes) ? data.notes : []);
+                    AppState.classes = mergeArrays(AppState.classes, data.classes || []);
+                    AppState.mechanics = mergeArrays(AppState.mechanics, data.mechanics || []);
+                    
+                    // Merge story data
                     if (data.story) {
-                        // New structure - story object
-                        AppState.story = data.story;
-                        // Ensure new arrays exist for migration
-                        if (!AppState.story.items) AppState.story.items = [];
-                        if (!AppState.story.quests) AppState.story.quests = [];
-                        if (!AppState.story.connectionWaypoints) AppState.story.connectionWaypoints = {};
-                    } else {
-                        // Old structure - separate arrays
-                        AppState.story = {
-                            acts: data.acts || [],
-                            backgroundMap: null,
-                            connectionWaypoints: {},
-                            characters: data.characters || [],
-                            locations: data.locations || [],
-                            timeline: data.timelineEvents || [],
-                            conflicts: data.conflicts || [],
-                            themes: data.themes || [],
-                            quests: [],
-                            items: []
-                        };
+                        const story = data.story;
+                        AppState.story.acts = mergeArrays(AppState.story.acts, story.acts || []);
+                        AppState.story.characters = mergeArrays(AppState.story.characters, story.characters || []);
+                        AppState.story.locations = mergeArrays(AppState.story.locations, story.locations || []);
+                        AppState.story.timeline = mergeArrays(AppState.story.timeline, story.timeline || []);
+                        AppState.story.conflicts = mergeArrays(AppState.story.conflicts, story.conflicts || []);
+                        AppState.story.themes = mergeArrays(AppState.story.themes, story.themes || []);
+                        AppState.story.quests = mergeArrays(AppState.story.quests || [], story.quests || []);
+                        AppState.story.items = mergeArrays(AppState.story.items || [], story.items || []);
                     }
                     
-                    // Save to storage
                     AppState.save();
-                    AppState.applyTheme();
                     
-                    // Refresh all sections that have render methods
+                    // Refresh all views
                     try {
-                        if (typeof TaskManager !== 'undefined' && TaskManager.render) TaskManager.render();
-                        if (typeof AssetTracker !== 'undefined' && AssetTracker.render) AssetTracker.render();
-                        if (typeof MilestonePlanner !== 'undefined' && MilestonePlanner.render) MilestonePlanner.render();
-                        if (typeof NotesManager !== 'undefined' && NotesManager.render) NotesManager.render();
-                        if (typeof ClassesManager !== 'undefined' && ClassesManager.render) ClassesManager.render();
-                        if (typeof MechanicsManager !== 'undefined' && MechanicsManager.render) MechanicsManager.render();
-                        if (typeof Dashboard !== 'undefined' && Dashboard.refresh) Dashboard.refresh();
-                        
-                        // Force reload of current section
-                        if (AppState.currentSection) {
-                            Navigation.switchSection(AppState.currentSection);
-                        }
+                        if (typeof TaskManager !== 'undefined') TaskManager.render();
+                        if (typeof AssetTracker !== 'undefined') AssetTracker.render();
+                        if (typeof MilestonesManager !== 'undefined') MilestonesManager.render();
+                        if (typeof NotesManager !== 'undefined') NotesManager.render();
+                        if (typeof ClassesManager !== 'undefined') ClassesManager.render();
+                        if (typeof MechanicsManager !== 'undefined') MechanicsManager.render();
+                        if (typeof CharacterManager !== 'undefined') CharacterManager.render();
+                        if (typeof LocationManager !== 'undefined') LocationManager.render();
+                        if (typeof StoryBuilder !== 'undefined') StoryBuilder.render();
                     } catch (renderError) {
                         console.error('Error refreshing views:', renderError);
                     }
                     
-                    Utils.showToast(`✅ Import successful! (${counts.notes} notes restored)`, 'success');
-                });
+                    Utils.showToast('✅ Data merged successfully! New items added without duplicates.', 'success');
+                } else {
+                    Utils.showToast('Import cancelled', 'info');
+                }
                 
             } catch (error) {
                 Utils.showToast('❌ Error importing JSON: ' + error.message, 'error');
@@ -14529,7 +14662,10 @@ const DocumentationExporter = {
         const a = document.createElement('a');
         a.href = url;
         const dateStr = new Date().toISOString().split('T')[0];
-        a.download = `Game-Design-Documentation-${dateStr}.html`;
+        const currentProject = ProjectManager.getCurrentProject();
+        const projectName = currentProject?.name || 'Untitled-Project';
+        const safeName = projectName.replace(/[^a-zA-Z0-9-_]/g, '-');
+        a.download = `${safeName}-Documentation-${dateStr}.html`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -17075,11 +17211,11 @@ const AIAssistant = {
         
         messageEl.innerHTML = `
             <div class="message-avatar assistant">
-                ❌
+                <img src="icons/status/error.svg" alt="error" width="24" height="24">
             </div>
             <div class="message-content error-content">
                 <div class="error-header">
-                    <strong>⚠️ Error Occurred</strong>
+                    <strong><img src="icons/status/warning.svg" alt="" width="16" height="16" style="vertical-align: middle;"> Error Occurred</strong>
                 </div>
                 <div class="error-details">
                     ${this.formatMessage(errorDetails)}
@@ -17087,7 +17223,7 @@ const AIAssistant = {
                 ${helpText ? `<div class="error-help">${helpText}</div>` : ''}
                 <div class="error-actions">
                     <button class="retry-btn" onclick="AIAssistant.retryMessage('${this.escapeForAttribute(originalMessage)}')">
-                        <span>🔄 Retry Message</span>
+                        <img src="icons/actions/refresh.svg" alt="" width="16" height="16" style="vertical-align: middle;"> <span>Retry Message</span>
                     </button>
                 </div>
                 <span class="message-time">${timeStr}</span>
@@ -17120,9 +17256,9 @@ const AIAssistant = {
     getStatusText() {
         if (!this.config.mode) return 'Not Configured';
         const modes = {
-            'local': '💻 Local Model',
-            'api': '🔑 API Connected',
-            'remote': '🌐 Remote Server'
+            'local': '<img src="icons/misc/computer.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Local Model',
+            'api': '<img src="icons/misc/key.svg" alt="" width="14" height="14" style="vertical-align: middle;"> API Connected',
+            'remote': '<img src="icons/misc/globe.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Remote Server'
         };
         return modes[this.config.mode] || 'Ready';
     },
@@ -17137,7 +17273,7 @@ const AIAssistant = {
         
         messageEl.innerHTML = `
             <div class="message-avatar ${message.role}">
-                ${message.role === 'user' ? '👤' : '🤖'}
+                <img src="icons/misc/${message.role === 'user' ? 'profile' : 'ai'}.svg" alt="${message.role}" width="24" height="24">
             </div>
             <div class="message-content">
                 <div class="message-text">${this.formatMessage(message.content)}</div>
@@ -17166,7 +17302,7 @@ const AIAssistant = {
         if (state !== 'ready') {
             dot.classList.add(state);
         }
-        statusText.textContent = text;
+        statusText.innerHTML = text;
     },
     
     async getAIResponse(userMessage) {
@@ -17222,22 +17358,41 @@ const AIAssistant = {
                 }
             }
             
-            // Build prompt with context
-            const systemPrompt = `You are a helpful AI assistant integrated into a game design planning tool. You have full access to the user's project data and can provide insights, suggestions, and help with brainstorming.
+            // Build prompt with context - simplified for GGUF models
+            const contextSummary = {
+                project: context.projectName,
+                tasks: `${context.tasks.completed}/${context.tasks.total} completed`,
+                assets: `${context.assets.total} total`,
+                classes: `${context.classes.total} character classes`,
+                mechanics: `${context.mechanics.total} game mechanics`,
+                story: {
+                    characters: context.story.characters.total,
+                    locations: context.story.locations.total,
+                    items: context.story.items.total,
+                    acts: context.story.acts.items
+                }
+            };
+            
+            // Build conversation history
+            const recentHistory = this.chatHistory.slice(-5).map(msg => 
+                `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
+            ).join('\n');
+            
+            const prompt = `You are an AI assistant helping with game design. Here's the current project state:
 
-Current Project Context:
-${JSON.stringify(context, null, 2)}
+Project: ${contextSummary.project}
+Tasks: ${contextSummary.tasks}
+Assets: ${contextSummary.assets}
+Classes: ${contextSummary.classes}
+Mechanics: ${contextSummary.mechanics}
+Story: ${contextSummary.story.acts.length} acts with ${contextSummary.story.characters} characters, ${contextSummary.story.locations} locations
 
-Previous conversation:
-${this.chatHistory.slice(-5).map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`).join('\n')}
-
-User: ${userMessage}
-Assistant:`;
+${recentHistory ? 'Recent conversation:\n' + recentHistory + '\n\n' : ''}User: ${userMessage}\n\nAssistant:`;
             
             // Generate response with streaming
             this.setupGenerationStreaming();
             
-            const result = await window.electronAPI.generateText(systemPrompt, {
+            const result = await window.electronAPI.generateText(prompt, {
                 temperature: config.temperature,
                 maxTokens: 512,
                 threads: 4
@@ -18048,7 +18203,10 @@ ${JSON.stringify(context, null, 2)}`
         
         // Save mode-specific settings
         if (mode === 'local') {
-            this.config.local.contextLength = parseInt(document.getElementById('localContextLength').value);
+            const oldContextLength = this.config.local.contextLength;
+            const newContextLength = parseInt(document.getElementById('localContextLength').value);
+            
+            this.config.local.contextLength = newContextLength;
             this.config.local.temperature = parseFloat(document.getElementById('localTemperature').value);
             
             const modelSelect = document.getElementById('localModelSelect').value;
@@ -18073,6 +18231,23 @@ ${JSON.stringify(context, null, 2)}`
             } else {
                 // Store the actual model path from detected models
                 this.config.local.modelPath = modelSelect;
+            }
+            
+            // Reload model if context length changed
+            if (isElectron && oldContextLength !== newContextLength) {
+                window.electronAPI.isModelLoaded().then(isLoaded => {
+                    if (isLoaded) {
+                        this.showToast('<img src="icons/actions/refresh.svg" alt="" width="16" height="16" style="vertical-align: middle;"> Reloading model with new context length...');
+                        window.electronAPI.unloadModel().then(() => {
+                            window.electronAPI.loadModel(this.config.local.modelPath, {
+                                contextLength: newContextLength
+                            }).catch(error => {
+                                console.error('Error reloading model:', error);
+                                this.showToast(`<img src="icons/status/error.svg" alt="" width="16" height="16" style="vertical-align: middle;"> Failed to reload model: ${error.message}`);
+                            });
+                        });
+                    }
+                });
             }
         } else if (mode === 'api') {
             this.config.api.provider = document.getElementById('apiProvider').value;
@@ -18157,11 +18332,11 @@ ${JSON.stringify(context, null, 2)}`
             dot.className = 'status-dot error';
         } else {
             const modes = {
-                'local': '💻 Local Model',
-                'api': '🔑 API Connected',
-                'remote': '🌐 Remote Server'
+                'local': '<img src="icons/misc/computer.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Local Model',
+                'api': '<img src="icons/misc/key.svg" alt="" width="14" height="14" style="vertical-align: middle;"> API Connected',
+                'remote': '<img src="icons/misc/globe.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Remote Server'
             };
-            statusText.textContent = modes[this.config.mode] || 'Ready';
+            statusText.innerHTML = modes[this.config.mode] || 'Ready';
             dot.className = 'status-dot';
         }
     },

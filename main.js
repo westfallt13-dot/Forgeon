@@ -242,10 +242,42 @@ ipcMain.handle('load-model', async (event, modelPath, options = {}) => {
             modelPath: modelPath
         });
         
-        // Create context
-        const context = await model.createContext({
-            contextSize: options.contextLength || 512
-        });
+        // Create context with fallback for insufficient memory
+        let contextSize = options.contextLength || 512;
+        let context;
+        
+        try {
+            context = await model.createContext({
+                contextSize: contextSize
+            });
+        } catch (error) {
+            // If memory error, try with smaller context sizes
+            if (error.message && error.message.includes('VRAM')) {
+                console.warn(`Context size ${contextSize} too large, trying smaller sizes...`);
+                const fallbackSizes = [2048, 1024, 512, 256];
+                
+                for (const size of fallbackSizes) {
+                    if (size >= contextSize) continue;
+                    
+                    try {
+                        console.log(`Attempting context size: ${size}`);
+                        context = await model.createContext({
+                            contextSize: size
+                        });
+                        console.log(`Successfully loaded with context size: ${size}`);
+                        break;
+                    } catch (fallbackError) {
+                        console.warn(`Context size ${size} failed:`, fallbackError.message);
+                    }
+                }
+                
+                if (!context) {
+                    throw new Error('Unable to create context with any available size. Try closing other applications to free up VRAM.');
+                }
+            } else {
+                throw error;
+            }
+        }
         
         // Create chat session
         const session = new llama.LlamaChatSession({

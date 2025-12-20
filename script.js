@@ -1419,7 +1419,7 @@ const RelationshipManager = {
         
         const typeLabels = {
             note: '📝 Notes',
-            class: '👤 Classes',
+            class: '<img src="icons/misc/user.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Classes',
             mechanic: '<img src="icons/navigation/mechanics.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Mechanics',
             act: '<img src="icons/story/story.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Acts',
             scene: '<img src="icons/story/story.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Scenes',
@@ -4585,7 +4585,7 @@ const ClassesManager = {
             const indent = depth * 2;
             
             const classTypeBadge = classObj.classType === 'character' 
-                ? '<span class="class-type-badge character">🎭 Character</span>'
+                ? '<span class="class-type-badge character"><img src="icons/misc/user.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Character</span>'
                 : '<span class="class-type-badge instance"><img src="icons/navigation/mechanics.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Instance</span>';
             
             let html = `
@@ -4703,7 +4703,7 @@ const ClassesManager = {
                         <label>Select Classes to Compare (2-4)</label>
                         <div class="class-checkboxes">
                             ${AppState.classes.map(cls => {
-                                const typeIcon = cls.classType === 'character' ? '🎭' : '<img src="icons/navigation/mechanics.svg" alt="" width="14" height="14" style="vertical-align: middle;">';
+                                const typeIcon = cls.classType === 'character' ? '<img src="icons/misc/user.svg" alt="" width="14" height="14" style="vertical-align: middle;">' : '<img src="icons/navigation/mechanics.svg" alt="" width="14" height="14" style="vertical-align: middle;">';
                                 const typeName = cls.classType === 'character' ? 'Character' : 'Instance';
                                 return `
                                 <label class="checkbox-label">
@@ -4770,7 +4770,7 @@ const ClassesManager = {
                             <tr>
                                 <th>Attribute</th>
                                 ${classes.map(cls => {
-                                    const typeIcon = cls.classType === 'character' ? '🎭' : '<img src="icons/navigation/mechanics.svg" alt="" width="14" height="14" style="vertical-align: middle;">';
+                                    const typeIcon = cls.classType === 'character' ? '<img src="icons/misc/user.svg" alt="" width="14" height="14" style="vertical-align: middle;">' : '<img src="icons/navigation/mechanics.svg" alt="" width="14" height="14" style="vertical-align: middle;">';
                                     return `<th>${typeIcon} ${Utils.escapeHtml(cls.name)}</th>`;
                                 }).join('')}
                             </tr>
@@ -4805,7 +4805,7 @@ const ClassesManager = {
                             <tr>
                                 <th>Skill</th>
                                 ${classes.map(cls => {
-                                    const typeIcon = cls.classType === 'character' ? '🎭' : '<img src="icons/navigation/mechanics.svg" alt="" width="14" height="14" style="vertical-align: middle;">';
+                                    const typeIcon = cls.classType === 'character' ? '<img src="icons/misc/user.svg" alt="" width="14" height="14" style="vertical-align: middle;">' : '<img src="icons/navigation/mechanics.svg" alt="" width="14" height="14" style="vertical-align: middle;">';
                                     return `<th>${typeIcon} ${Utils.escapeHtml(cls.name)}</th>`;
                                 }).join('')}
                             </tr>
@@ -4840,7 +4840,7 @@ const ClassesManager = {
                             <tr>
                                 <th>Stat</th>
                                 ${classes.map(cls => {
-                                    const typeIcon = cls.classType === 'character' ? '🎭' : '<img src="icons/navigation/mechanics.svg" alt="" width="14" height="14" style="vertical-align: middle;">';
+                                    const typeIcon = cls.classType === 'character' ? '<img src="icons/misc/user.svg" alt="" width="14" height="14" style="vertical-align: middle;">' : '<img src="icons/navigation/mechanics.svg" alt="" width="14" height="14" style="vertical-align: middle;">';
                                     return `<th>${typeIcon} ${Utils.escapeHtml(cls.name)}</th>`;
                                 }).join('')}
                             </tr>
@@ -4871,7 +4871,7 @@ const ClassesManager = {
                 <h3><img src="icons/misc/checklist.svg" alt="" width="16" height="16" style="vertical-align: middle;"> Summary</h3>
                 <div class="comparison-summary">
                     ${classes.map(cls => {
-                        const typeIcon = cls.classType === 'character' ? '🎭' : '<img src="icons/navigation/mechanics.svg" alt="" width="14" height="14" style="vertical-align: middle;">';
+                        const typeIcon = cls.classType === 'character' ? '<img src="icons/misc/user.svg" alt="" width="14" height="14" style="vertical-align: middle;">' : '<img src="icons/navigation/mechanics.svg" alt="" width="14" height="14" style="vertical-align: middle;">';
                         const typeName = cls.classType === 'character' ? 'Character Class' : 'Instance Class';
                         return `
                         <div class="summary-card">
@@ -5228,7 +5228,7 @@ const ClassesManager = {
                 balanceIcon = '⚠️';
             }
             
-            const typeIcon = cls.classType === 'character' ? '🎭' : '<img src="icons/navigation/mechanics.svg" alt="" width="14" height="14" style="vertical-align: middle;">';
+            const typeIcon = cls.classType === 'character' ? '<img src="icons/misc/user.svg" alt="" width="14" height="14" style="vertical-align: middle;">' : '<img src="icons/navigation/mechanics.svg" alt="" width="14" height="14" style="vertical-align: middle;">';
             const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
             
             html += `
@@ -5595,8 +5595,8 @@ const MechanicsManager = {
                 <div class="form-group">
                     <label>Testing & Prototypes</label>
                     <div style="display: flex; gap: 10px;">
-                        <button type="button" class="btn btn-small btn-secondary" id="manageTestsBtn">📝 Manage Tests</button>
-                        <button type="button" class="btn btn-small btn-secondary" id="managePrototypesBtn">🎮 Manage Prototypes</button>
+                        <button type="button" class="btn btn-small btn-secondary" id="manageTestsBtn"><img src="icons/misc/checklist.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Manage Tests</button>
+                        <button type="button" class="btn btn-small btn-secondary" id="managePrototypesBtn"><img src="icons/misc/gameplay.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Manage Prototypes</button>
                     </div>
                 </div>
                 ` : ''}
@@ -5730,13 +5730,15 @@ const MechanicsManager = {
                 <p>Define test cases to ensure this mechanic works correctly</p>
                 
                 <div class="tests-list" id="testsList">
-                    ${mechanic.tests.length > 0 ? mechanic.tests.map((test, index) => `
-                        <div class="test-item ${test.passed ? 'passed' : ''}">
-                            <input type="checkbox" class="test-checkbox" data-index="${index}" ${test.passed ? 'checked' : ''}>
-                            <input type="text" class="test-description" value="${Utils.escapeHtml(test.description)}" placeholder="Test description">
-                            <button class="btn-icon-small remove-test" data-index="${index}">✕</button>
-                        </div>
-                    `).join('') : '<p class="empty-state-small">No test cases yet</p>'}
+                    ${mechanic.tests.length > 0 ? mechanic.tests.map((test, index) => {
+                        const description = typeof test === 'string' ? test : test.description;
+                        return `
+                            <div class="test-item">
+                                <input type="text" class="test-description" value="${Utils.escapeHtml(description)}" placeholder="Test description">
+                                <button class="btn-icon-small remove-test" data-index="${index}">✕</button>
+                            </div>
+                        `;
+                    }).join('') : '<p class="empty-state-small">No test cases yet</p>'}
                 </div>
                 
                 <button class="btn btn-secondary" id="addTestBtn">+ Add Test Case</button>
@@ -5760,7 +5762,6 @@ const MechanicsManager = {
             const testItem = document.createElement('div');
             testItem.className = 'test-item';
             testItem.innerHTML = `
-                <input type="checkbox" class="test-checkbox" data-index="${newIndex}">
                 <input type="text" class="test-description" value="" placeholder="Test description">
                 <button class="btn-icon-small remove-test" data-index="${newIndex}">✕</button>
             `;
@@ -5783,13 +5784,12 @@ const MechanicsManager = {
             mechanic.tests = [];
             document.querySelectorAll('.test-item').forEach(item => {
                 const description = item.querySelector('.test-description').value.trim();
-                const passed = item.querySelector('.test-checkbox').checked;
                 if (description) {
-                    mechanic.tests.push({ description, passed });
+                    mechanic.tests.push(description);
                 }
             });
             AppState.save();
-            alert('Test cases saved!');
+            this.render();
             Modal.close();
         });
     },
@@ -5869,7 +5869,7 @@ const MechanicsManager = {
                 }
             });
             AppState.save();
-            alert('Prototypes saved!');
+            this.render();
             Modal.close();
         });
     },
@@ -5972,7 +5972,6 @@ const MechanicsManager = {
                         return dep ? dep.name : null;
                     }).filter(n => n);
                     
-                    const testsPassed = mechanic.tests?.filter(t => t.passed).length || 0;
                     const testsTotal = mechanic.tests?.length || 0;
                     
                     html += `
@@ -6026,8 +6025,8 @@ const MechanicsManager = {
                             
                             <div class="mechanic-footer">
                                 <div class="mechanic-stats">
-                                    ${testsTotal > 0 ? `<span class="mechanic-stat">📝 Tests: ${testsPassed}/${testsTotal}</span>` : ''}
-                                    ${mechanic.prototypes?.length > 0 ? `<span class="mechanic-stat">🎮 Prototypes: ${mechanic.prototypes.length}</span>` : ''}
+                                    ${testsTotal > 0 ? `<span class="mechanic-stat"><img src="icons/misc/checklist.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Tests: ${testsTotal}</span>` : ''}
+                                    ${mechanic.prototypes?.length > 0 ? `<span class="mechanic-stat"><img src="icons/misc/gameplay.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Prototypes: ${mechanic.prototypes.length}</span>` : ''}
                                 </div>
                                 <div class="mechanic-actions">
                                     <button class="btn btn-small btn-secondary" onclick="MechanicsManager.openAddModal(AppState.mechanics.find(m => m.id === '${mechanic.id}'))">Edit</button>
@@ -8753,7 +8752,7 @@ const StoryManager = {
                             ${AppState.classes.length > 0 ? AppState.classes.map(cls => {
                                 const isSelected = isEdit && characterToEdit.classes?.some(c => c.classId === cls.id);
                                 const classData = isEdit && characterToEdit.classes?.find(c => c.classId === cls.id);
-                                const typeIcon = cls.classType === 'character' ? '🎭' : '<img src="icons/navigation/mechanics.svg" alt="" width="14" height="14" style="vertical-align: middle;">';
+                                const typeIcon = cls.classType === 'character' ? '<img src="icons/misc/user.svg" alt="" width="14" height="14" style="vertical-align: middle;">' : '<img src="icons/navigation/mechanics.svg" alt="" width="14" height="14" style="vertical-align: middle;">';
                                 return `
                                 <label class="multi-class-option ${isSelected ? 'selected' : ''}">
                                     <input type="checkbox" class="class-checkbox" value="${cls.id}" ${isSelected ? 'checked' : ''}>

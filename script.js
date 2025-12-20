@@ -1045,7 +1045,7 @@ const RelationshipManager = {
                 type: 'class',
                 name: cls.name,
                 category: cls.classType === 'character' ? 'Character Class' : 'Instance Class',
-                icon: cls.classType === 'character' ? '👤' : '📦',
+                icon: cls.classType === 'character' ? '<img src="icons/misc/user.svg" alt="" width="14" height="14" style="vertical-align: middle;">' : '<img src="icons/misc/package.svg" alt="" width="14" height="14" style="vertical-align: middle;">',
                 section: 'classes',
                 data: cls
             });
@@ -1129,7 +1129,7 @@ const RelationshipManager = {
                 type: 'act',
                 name: act.title,
                 category: 'Story Act',
-                icon: '📖',
+                icon: '<img src="icons/story/story.svg" alt="" width="14" height="14" style="vertical-align: middle;">',
                 section: 'story',
                 data: normalizedAct
             });
@@ -1178,7 +1178,7 @@ const RelationshipManager = {
                     type: 'scene',
                     name: scene.title,
                     category: `Act ${act.actNumber} Scene`,
-                    icon: '🎬',
+                    icon: '<img src="icons/story/story.svg" alt="" width="14" height="14" style="vertical-align: middle;">',
                     section: 'story',
                     data: normalizedScene,
                     actId: act.id,
@@ -1233,7 +1233,7 @@ const RelationshipManager = {
                 type: 'conflict',
                 name: conflict.title,
                 category: 'Conflict',
-                icon: '⚡',
+                icon: '<img src="icons/misc/combat.svg" alt="" width="14" height="14" style="vertical-align: middle;">',
                 section: 'story',
                 data: conflict
             });
@@ -1260,7 +1260,7 @@ const RelationshipManager = {
                     type: 'item',
                     name: item.name,
                     category: 'Game Item',
-                    icon: '📦',
+                    icon: '<img src="icons/misc/package.svg" alt="" width="14" height="14" style="vertical-align: middle;">',
                     section: 'story',
                     data: item
                 });
@@ -1290,7 +1290,7 @@ const RelationshipManager = {
                     type: 'asset',
                     name: asset.name,
                     category: `${asset.type.charAt(0).toUpperCase() + asset.type.slice(1)} Asset`,
-                    icon: '🎨',
+                    icon: '<img src="icons/asset/asset.svg" alt="" width="14" height="14" style="vertical-align: middle;">',
                     section: 'assets',
                     data: asset
                 });
@@ -1421,13 +1421,13 @@ const RelationshipManager = {
             note: '📝 Notes',
             class: '👤 Classes',
             mechanic: '<img src="icons/navigation/mechanics.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Mechanics',
-            act: '📖 Acts',
-            scene: '🎬 Scenes',
+            act: '<img src="icons/story/story.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Acts',
+            scene: '<img src="icons/story/story.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Scenes',
             character: '<img src="icons/misc/user.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Characters',
             location: '<img src="icons/story/location.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Locations',
             timeline: '<img src="icons/misc/calendar.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Timeline',
-            conflict: '⚡ Conflicts',
-            theme: '🎨 Themes'
+            conflict: '<img src="icons/misc/combat.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Conflicts',
+            theme: '<img src="icons/misc/thought-bubble.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Themes'
         };
         
         Object.entries(grouped).forEach(([type, items]) => {
@@ -10260,7 +10260,7 @@ const StoryManager = {
             conflictsContainer.innerHTML = '<div class="empty-state-small">No conflicts added yet.</div>';
         } else {
             const conflictTypeIcons = {
-                internal: '🧠',
+                internal: '<img src="icons/misc/thought-bubble.svg" alt="" width="14" height="14" style="vertical-align: middle;">',
                 external: '<img src="icons/misc/combat.svg" alt="" width="14" height="14" style="vertical-align: middle;">',
                 interpersonal: '<img src="icons/misc/user.svg" alt="" width="14" height="14" style="vertical-align: middle;">'
             };

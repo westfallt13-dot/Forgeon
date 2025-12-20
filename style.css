@@ -3110,6 +3110,26 @@ input[type="file"]:focus {
     right: 0.5rem;
 }
 
+.skill-input-row {
+    display: flex;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.skill-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+}
+
+.skill-field-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+}
+
 .skill-input input[type="text"],
 .skill-input input[type="number"],
 .skill-input textarea {
@@ -3124,9 +3144,10 @@ input[type="file"]:focus {
 }
 
 .skill-input .skill-level,
-.skill-input .skill-power {
+.skill-input .skill-power,
+.skill-input .skill-name {
     width: 100%;
-    max-width: 150px;
+    max-width: none;
 }
 
 .skill-input .skill-power {

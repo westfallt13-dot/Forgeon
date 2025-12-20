@@ -3997,9 +3997,20 @@ const ClassesManager = {
         if (!skills || skills.length === 0) {
             return `
                 <div class="skill-input">
-                    <input type="text" class="skill-name" placeholder="Skill name" value="">
-                    <input type="number" class="skill-level" placeholder="Unlock level" value="1" min="1" title="Level when this skill is unlocked">
-                    <input type="number" class="skill-power" placeholder="Power value" value="10" min="0" step="1" title="Power rating for balance testing">
+                    <div class="skill-input-row">
+                        <div class="skill-field">
+                            <label class="skill-field-label">Skill Name</label>
+                            <input type="text" class="skill-name" placeholder="Skill name" value="">
+                        </div>
+                        <div class="skill-field">
+                            <label class="skill-field-label">Unlock Level</label>
+                            <input type="number" class="skill-level" placeholder="Level" value="1" min="1" title="Level when this skill is unlocked">
+                        </div>
+                        <div class="skill-field">
+                            <label class="skill-field-label">Power Value</label>
+                            <input type="number" class="skill-power" placeholder="Power" value="10" min="0" step="1" title="Power rating for balance testing">
+                        </div>
+                    </div>
                     <input type="text" class="skill-requires" placeholder="Required skills (comma-separated)" value="">
                     <textarea class="skill-description" placeholder="Description" rows="2"></textarea>
                     <button type="button" class="btn-icon-small remove-item">✕</button>
@@ -4008,9 +4019,20 @@ const ClassesManager = {
         }
         return skills.map(skill => `
             <div class="skill-input">
-                <input type="text" class="skill-name" placeholder="Skill name" value="${Utils.escapeHtml(skill.name)}">
-                <input type="number" class="skill-level" placeholder="Unlock level" value="${skill.unlockLevel || 1}" min="1" title="Level when this skill is unlocked">
-                <input type="number" class="skill-power" placeholder="Power value" value="${skill.power || 10}" min="0" step="1" title="Power rating for balance testing">
+                <div class="skill-input-row">
+                    <div class="skill-field">
+                        <label class="skill-field-label">Skill Name</label>
+                        <input type="text" class="skill-name" placeholder="Skill name" value="${Utils.escapeHtml(skill.name)}">
+                    </div>
+                    <div class="skill-field">
+                        <label class="skill-field-label">Unlock Level</label>
+                        <input type="number" class="skill-level" placeholder="Level" value="${skill.unlockLevel || 1}" min="1" title="Level when this skill is unlocked">
+                    </div>
+                    <div class="skill-field">
+                        <label class="skill-field-label">Power Value</label>
+                        <input type="number" class="skill-power" placeholder="Power" value="${skill.power || 10}" min="0" step="1" title="Power rating for balance testing">
+                    </div>
+                </div>
                 <input type="text" class="skill-requires" placeholder="Required skills" value="${skill.requires ? skill.requires.join(', ') : ''}">
                 <textarea class="skill-description" placeholder="Description" rows="2">${skill.description ? Utils.escapeHtml(skill.description) : ''}</textarea>
                 <button type="button" class="btn-icon-small remove-item">✕</button>
@@ -4179,8 +4201,20 @@ const ClassesManager = {
             const newSkill = document.createElement('div');
             newSkill.className = 'skill-input';
             newSkill.innerHTML = `
-                <input type="text" class="skill-name" placeholder="Skill name" value="">
-                <input type="number" class="skill-level" placeholder="Unlock level" value="1" min="1">
+                <div class="skill-input-row">
+                    <div class="skill-field">
+                        <label class="skill-field-label">Skill Name</label>
+                        <input type="text" class="skill-name" placeholder="Skill name" value="">
+                    </div>
+                    <div class="skill-field">
+                        <label class="skill-field-label">Unlock Level</label>
+                        <input type="number" class="skill-level" placeholder="Level" value="1" min="1">
+                    </div>
+                    <div class="skill-field">
+                        <label class="skill-field-label">Power Value</label>
+                        <input type="number" class="skill-power" placeholder="Power" value="10" min="0" step="1">
+                    </div>
+                </div>
                 <input type="text" class="skill-requires" placeholder="Required skills (comma-separated)" value="">
                 <textarea class="skill-description" placeholder="Description" rows="2"></textarea>
                 <button type="button" class="btn-icon-small remove-item">✕</button>

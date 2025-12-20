@@ -2141,16 +2141,6 @@ const Dashboard = {
         document.getElementById('totalNotes').textContent = Array.isArray(AppState.notes) ? AppState.notes.filter(n => !n.archived).length : 0;
         
         // ===== Reminder & Calendar Stats =====
-        const activeTasks = AppState.tasks.filter(t => !t.completed).length;
-        const overdueTasks = AppState.tasks.filter(t => !t.completed && t.dueDate && Utils.isDateBeforeToday(t.dueDate)).length;
-        document.getElementById('activeTasks').textContent = activeTasks;
-        if (overdueTasks > 0) {
-            document.getElementById('activeTasks').innerHTML = `${activeTasks} <span style="color: var(--danger-color); font-size: 0.8em;">(${overdueTasks} overdue)</span>`;
-        }
-        
-        document.getElementById('totalAssets').textContent = AppState.assets.length;
-        document.getElementById('totalMilestones').textContent = AppState.milestones.length;
-        document.getElementById('totalNotes').textContent = Array.isArray(AppState.notes) ? AppState.notes.filter(n => !n.archived).length : 0;
         
         // Update reminder stats
         this.updateReminderStats();
@@ -5324,14 +5314,14 @@ const MechanicsManager = {
                             // Group by category
                             const categories = {
                                 movement: { label: '🏃 Movement', items: [] },
-                                combat: { label: '<img src="icons/misc/combat.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Combat', items: [] },
-                                ui: { label: '<img src="icons/misc/ui.svg" alt="" width="14" height="14" style="vertical-align: middle;"> UI/UX', items: [] },
+                                combat: { label: '⚔️ Combat', items: [] },
+                                ui: { label: '🎨 UI/UX', items: [] },
                                 gameplay: { label: '🎮 Gameplay', items: [] },
                                 ai: { label: '🤖 AI', items: [] },
-                                physics: { label: '<img src="icons/misc/physics.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Physics', items: [] },
+                                physics: { label: '⚙️ Physics', items: [] },
                                 networking: { label: '🌐 Networking', items: [] },
                                 audio: { label: '🔊 Audio', items: [] },
-                                graphics: { label: '🎨 Graphics', items: [] },
+                                graphics: { label: '🖼️ Graphics', items: [] },
                                 other: { label: '📦 Other', items: [] }
                             };
                             
@@ -7113,17 +7103,12 @@ const StoryManager = {
                 
                 <div class="form-group">
                     <label>Locations (in chronological order)</label>
-                    <div style="display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px;">
-                        <select id="sceneLocationSelect" style="flex: 1;">
-                            <option value="">Select a location to add...</option>
-                            ${AppState.story.locations.map(loc => `
-                                <option value="${loc.id}">
-                                    ${Utils.escapeHtml(loc.name)}
-                                </option>
-                            `).join('')}
-                        </select>
-                        <button type="button" class="btn btn-icon" id="addLocationToSceneBtn" title="Add Location">+</button>
-                        <button type="button" class="btn btn-icon" id="quickAddLocationBtn" title="Quick Create Location"><img src="icons/misc/sparkles.svg" alt="" width="14" height="14" style="vertical-align: middle;"></button>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                        <button type="button" class="btn btn-secondary" id="addLocationToSceneBtn" style="display: flex; align-items: center; gap: 6px;">
+                            <span>+</span>
+                            <span>Add Location</span>
+                        </button>
+                        <small style="color: var(--text-secondary);">Click to select existing or create new</small>
                     </div>
                     <div id="sceneLocationsList" style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;">
                         ${isEdit && sceneToEdit.locationIds && sceneToEdit.locationIds.length > 0 ? 
@@ -7287,32 +7272,180 @@ const StoryManager = {
         };
         
         document.getElementById('addLocationToSceneBtn')?.addEventListener('click', () => {
-            const select = document.getElementById('sceneLocationSelect');
-            const locationId = select.value;
-            if (!locationId) return;
+            console.log('Add Location button clicked');
             
-            const location = AppState.story.locations.find(l => l.id === locationId);
-            if (!location) return;
+            // Instead of opening a new modal, create an inline overlay within the current modal
+            const modalBody = document.getElementById('modalBody');
+            const existingLocations = AppState.story.locations || [];
             
-            const locationsList = document.getElementById('sceneLocationsList');
-            const existingEmpty = locationsList.querySelector('.empty-state-small');
-            if (existingEmpty) existingEmpty.remove();
+            // Create an overlay div within the modal
+            const overlayDiv = document.createElement('div');
+            overlayDiv.id = 'locationSelectionOverlay';
+            overlayDiv.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                background: var(--bg-primary);
+                z-index: 10;
+                overflow-y: auto;
+                padding: 24px;
+                min-height: 100%;
+            `;
             
-            const items = locationsList.querySelectorAll('.location-order-item');
-            const index = items.length;
-            
-            const itemHtml = `
-                <div class="location-order-item" data-location-id="${locationId}">
-                    <span class="location-order-number">${index + 1}.</span>
-                    <span class="location-order-name">${Utils.escapeHtml(location.name)}</span>
-                    <button type="button" class="btn-icon-small move-up" title="Move Up">↑</button>
-                    <button type="button" class="btn-icon-small move-down" title="Move Down">↓</button>
-                    <button type="button" class="btn-icon-small remove-location" title="Remove">✕</button>
+            const overlayContent = `
+                <div style="max-width: 600px; margin: 0 auto;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="margin: 0;">Add Location to Scene</h3>
+                        <button type="button" id="closeLocationOverlay" class="btn btn-icon" style="font-size: 20px;">×</button>
+                    </div>
+                    
+                    ${existingLocations.length > 0 ? `
+                        <div style="margin-bottom: 24px;">
+                            <h4 style="margin-bottom: 12px; font-size: 14px;">Select Existing Location</h4>
+                            <div id="existingLocationsList" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; padding: 8px; background: var(--bg-secondary); border-radius: 6px;">
+                                ${existingLocations.map(loc => `
+                                    <button type="button" class="location-select-btn" data-location-id="${loc.id}" style="padding: 10px; text-align: left; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; transition: all 0.2s;">
+                                        <div style="font-weight: 500;">${Utils.escapeHtml(loc.name)}</div>
+                                        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${loc.type}</div>
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center; margin: 16px 0; color: var(--text-secondary); font-size: 13px;">
+                            — OR —
+                        </div>
+                    ` : ''}
+                    
+                    <div>
+                        <h4 style="margin-bottom: 12px; font-size: 14px;">Create New Location</h4>
+                        <form id="quickLocationFormInline">
+                            <div class="form-group">
+                                <label for="quickLocNameInline">Location Name *</label>
+                                <input type="text" id="quickLocNameInline" required placeholder="e.g., The Old Library">
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="quickLocTypeInline">Type *</label>
+                                    <select id="quickLocTypeInline" required>
+                                        <option value="interior">Interior</option>
+                                        <option value="exterior">Exterior</option>
+                                        <option value="world">World/Region</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="quickLocDescriptionInline">Quick Description (Optional)</label>
+                                <textarea id="quickLocDescriptionInline" rows="2" placeholder="Brief description..."></textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">Create & Add</button>
+                        </form>
+                    </div>
                 </div>
             `;
-            locationsList.insertAdjacentHTML('beforeend', itemHtml);
-            select.value = '';
-            updateLocationsList();
+            
+            overlayDiv.innerHTML = overlayContent;
+            modalBody.style.position = 'relative';
+            modalBody.appendChild(overlayDiv);
+            
+            // Close overlay function
+            const closeOverlay = () => {
+                overlayDiv.remove();
+            };
+            
+            document.getElementById('closeLocationOverlay').addEventListener('click', closeOverlay);
+            
+            // Handle existing location selection
+            document.querySelectorAll('.location-select-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const locationId = btn.getAttribute('data-location-id');
+                    const location = AppState.story.locations.find(l => l.id === locationId);
+                    
+                    if (location) {
+                        const locationsList = document.getElementById('sceneLocationsList');
+                        const existing = locationsList.querySelector(`[data-location-id="${locationId}"]`);
+                        
+                        if (existing) {
+                            alert('This location has already been added to this scene.');
+                            return;
+                        }
+                        
+                        const existingEmpty = locationsList.querySelector('.empty-state-small');
+                        if (existingEmpty) existingEmpty.remove();
+                        
+                        const items = locationsList.querySelectorAll('.location-order-item');
+                        const index = items.length;
+                        
+                        const itemHtml = `
+                            <div class="location-order-item" data-location-id="${locationId}">
+                                <span class="location-order-number">${index + 1}.</span>
+                                <span class="location-order-name">${Utils.escapeHtml(location.name)}</span>
+                                <button type="button" class="btn-icon-small move-up" title="Move Up">↑</button>
+                                <button type="button" class="btn-icon-small move-down" title="Move Down">↓</button>
+                                <button type="button" class="btn-icon-small remove-location" title="Remove">✕</button>
+                            </div>
+                        `;
+                        locationsList.insertAdjacentHTML('beforeend', itemHtml);
+                        updateLocationsList();
+                        closeOverlay();
+                    }
+                });
+                
+                // Add hover effect
+                btn.addEventListener('mouseenter', () => {
+                    btn.style.background = 'var(--bg-hover)';
+                    btn.style.borderColor = 'var(--primary-color)';
+                });
+                btn.addEventListener('mouseleave', () => {
+                    btn.style.background = 'var(--bg-primary)';
+                    btn.style.borderColor = 'var(--border-color)';
+                });
+            });
+            
+            // Handle new location creation
+            document.getElementById('quickLocationFormInline').addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const locationData = {
+                    id: Utils.generateId(),
+                    name: document.getElementById('quickLocNameInline').value.trim(),
+                    type: document.getElementById('quickLocTypeInline').value,
+                    description: document.getElementById('quickLocDescriptionInline').value.trim(),
+                    significance: '',
+                    assetIds: [],
+                    relatedItems: [],
+                    createdAt: new Date().toISOString()
+                };
+                
+                AppState.story.locations.push(locationData);
+                AppState.save();
+                this.renderLocations();
+                
+                // Add to scene
+                const locationsList = document.getElementById('sceneLocationsList');
+                const existingEmpty = locationsList.querySelector('.empty-state-small');
+                if (existingEmpty) existingEmpty.remove();
+                
+                const items = locationsList.querySelectorAll('.location-order-item');
+                const index = items.length;
+                
+                const itemHtml = `
+                    <div class="location-order-item" data-location-id="${locationData.id}">
+                        <span class="location-order-number">${index + 1}.</span>
+                        <span class="location-order-name">${Utils.escapeHtml(locationData.name)}</span>
+                        <button type="button" class="btn-icon-small move-up" title="Move Up">↑</button>
+                        <button type="button" class="btn-icon-small move-down" title="Move Down">↓</button>
+                        <button type="button" class="btn-icon-small remove-location" title="Remove">✕</button>
+                    </div>
+                `;
+                locationsList.insertAdjacentHTML('beforeend', itemHtml);
+                updateLocationsList();
+                closeOverlay();
+            });
         });
         
         document.getElementById('sceneLocationsList')?.addEventListener('click', (e) => {
@@ -7356,17 +7489,7 @@ const StoryManager = {
             });
         });
         
-        document.getElementById('quickAddLocationBtn')?.addEventListener('click', () => {
-            this.openQuickAddLocationModal((newLocation) => {
-                const locationSelect = document.getElementById('sceneLocationSelect');
-                if (locationSelect) {
-                    const option = document.createElement('option');
-                    option.value = newLocation.id;
-                    option.textContent = newLocation.name;
-                    locationSelect.appendChild(option);
-                }
-            });
-        });
+
         
         document.getElementById('quickAddConflictBtn')?.addEventListener('click', () => {
             this.openQuickAddConflictModal((newConflict) => {
@@ -7595,8 +7718,8 @@ const StoryManager = {
                                     ${scene.description ? `<p class="scene-description">${Utils.escapeHtml(scene.description)}</p>` : ''}
                                     ${scene.locationIds && scene.locationIds.length > 0 ? `<div class="scene-meta"><strong>${Utils.icon('story/location', 'small')} Location${scene.locationIds.length > 1 ? 's' : ''}:</strong> ${scene.locationIds.map(locId => {
                                         const loc = AppState.story.locations.find(l => l.id === locId);
-                                        return loc ? `<span class="character-tag">${Utils.escapeHtml(loc.name)}</span>` : '';
-                                    }).filter(l => l).join(' → ')}</div>` : ''}
+                                        return loc ? `<span class="character-tag">${Utils.escapeHtml(loc.name)}</span>` : `<span class="character-tag" style="opacity: 0.5;">[Deleted Location]</span>`;
+                                    }).join(' → ')}</div>` : ''}
                                     ${scene.characterIds && scene.characterIds.length > 0 ? `<div class="scene-meta"><strong>${Utils.icon('story/characters', 'small')} Characters:</strong> ${scene.characterIds.map(charId => {
                                         const char = AppState.story.characters.find(c => c.id === charId);
                                         return char ? `<span class="character-tag">${Utils.escapeHtml(char.name)}</span>` : '';
@@ -8804,6 +8927,150 @@ const StoryManager = {
         });
         
         document.getElementById('cancelQuickLocBtn').addEventListener('click', () => Modal.close());
+    },
+    
+    openAddLocationToSceneModal(onSuccess) {
+        const existingLocations = AppState.story.locations || [];
+        
+        const formHtml = `
+            <div class="modal-form">
+                <h3>Add Location to Scene</h3>
+                
+                ${existingLocations.length > 0 ? `
+                    <div style="margin-bottom: 24px;">
+                        <h4 style="margin-bottom: 12px; font-size: 14px;">Select Existing Location</h4>
+                        <div id="existingLocationsList" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; padding: 8px; background: var(--bg-secondary); border-radius: 6px;">
+                            ${existingLocations.map(loc => `
+                                <button type="button" class="location-select-btn" data-location-id="${loc.id}" style="padding: 10px; text-align: left; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; transition: all 0.2s;">
+                                    <div style="font-weight: 500;">${Utils.escapeHtml(loc.name)}</div>
+                                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${loc.type}</div>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin: 16px 0; color: var(--text-secondary); font-size: 13px;">
+                        — OR —
+                    </div>
+                ` : ''}
+                
+                <div>
+                    <h4 style="margin-bottom: 12px; font-size: 14px;">Create New Location</h4>
+                    <form id="quickLocationForm">
+                        <div class="form-group">
+                            <label for="quickLocName">Location Name *</label>
+                            <input type="text" id="quickLocName" required placeholder="e.g., The Old Library">
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="quickLocType">Type *</label>
+                                <select id="quickLocType" required>
+                                    <option value="interior">Interior</option>
+                                    <option value="exterior">Exterior</option>
+                                    <option value="world">World/Region</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="quickLocDescription">Quick Description (Optional)</label>
+                            <textarea id="quickLocDescription" rows="2" placeholder="Brief description..."></textarea>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" id="cancelLocationBtn">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Create & Add</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        
+        Modal.open(formHtml);
+        
+        // Wait for modal to render, then attach event listeners
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                console.log('Attaching location modal event listeners...');
+                
+                // Handle existing location selection
+                const locationButtons = document.querySelectorAll('.location-select-btn');
+                console.log('Found location buttons:', locationButtons.length);
+                
+                locationButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const locationId = btn.getAttribute('data-location-id');
+                        console.log('Location selected:', locationId);
+                        
+                        // Execute callback BEFORE closing modal
+                        if (onSuccess) {
+                            onSuccess(locationId);
+                        } else {
+                            console.error('onSuccess callback is not defined');
+                        }
+                        
+                        // Close modal after callback completes
+                        Modal.close();
+                    });
+                    
+                    // Add hover effect
+                    btn.addEventListener('mouseenter', (e) => {
+                        e.target.closest('button').style.background = 'var(--bg-hover)';
+                        e.target.closest('button').style.borderColor = 'var(--primary-color)';
+                    });
+                    btn.addEventListener('mouseleave', (e) => {
+                        e.target.closest('button').style.background = 'var(--bg-primary)';
+                        e.target.closest('button').style.borderColor = 'var(--border-color)';
+                    });
+                });
+                
+                // Handle new location creation
+                const form = document.getElementById('quickLocationForm');
+                if (form) {
+                    console.log('Form found, attaching submit handler');
+                    form.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        console.log('Form submitted');
+                        
+                        const locationData = {
+                            id: Utils.generateId(),
+                            name: document.getElementById('quickLocName').value.trim(),
+                            type: document.getElementById('quickLocType').value,
+                            description: document.getElementById('quickLocDescription').value.trim(),
+                            significance: '',
+                            assetIds: [],
+                            relatedItems: [],
+                            createdAt: new Date().toISOString()
+                        };
+                        
+                        console.log('Creating new location:', locationData.name);
+                        AppState.story.locations.push(locationData);
+                        AppState.save();
+                        StoryManager.renderLocations();
+                        
+                        // Execute callback BEFORE closing modal
+                        if (onSuccess) {
+                            onSuccess(locationData.id);
+                        } else {
+                            console.error('onSuccess callback is not defined');
+                        }
+                        
+                        // Close modal after callback completes
+                        Modal.close();
+                    });
+                } else {
+                    console.error('quickLocationForm not found');
+                }
+                
+                const cancelBtn = document.getElementById('cancelLocationBtn');
+                if (cancelBtn) {
+                    cancelBtn.addEventListener('click', () => Modal.close());
+                } else {
+                    console.error('cancelLocationBtn not found');
+                }
+            });
+        });
     },
     
     openQuickAddConflictModal(onSuccess) {
@@ -13396,374 +13663,6 @@ const Search = {
         this.clearResults();
     }
 };
-
-// ============================================
-// Relationship Filter (REMOVED - Not working properly)
-// ============================================
-/*
-const RelationshipFilter = {
-    init() {
-        const filterBtn = document.getElementById('relationshipFilterBtn');
-        if (filterBtn) {
-            filterBtn.addEventListener('click', () => this.openFilterModal());
-        }
-    },
-
-    getAllItems() {
-        // Use RelationshipManager to get all items (same as the graph uses)
-        return RelationshipManager.getAllItems().sort((a, b) => a.name.localeCompare(b.name));
-    },
-    
-    // Extract all relationship IDs from an item - use same logic as RelationshipGraph
-    extractRelationshipIds(item) {
-        const relationships = [];
-        
-        // Get direct relationships from relatedItems (this is what the graph uses)
-        if (item.data.relatedItems && Array.isArray(item.data.relatedItems)) {
-            item.data.relatedItems.forEach(relItem => {
-                // relatedItems contains objects with id, not just IDs
-                if (typeof relItem === 'object' && relItem.id) {
-                    relationships.push(relItem.id);
-                } else if (typeof relItem === 'string') {
-                    relationships.push(relItem);
-                }
-            });
-        }
-        
-        return relationships;
-    },
-
-    openFilterModal() {
-        const allItems = this.getAllItems();
-        
-        const content = `
-            <div class="relationship-filter-modal">
-                <h3><img src="icons/misc/link.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Relationship Filter</h3>
-                <p>Select an item to view all related items and connections.</p>
-                
-                <div class="form-group">
-                    <label for="filterItemSelect">Select Item:</label>
-                    <select id="filterItemSelect" class="form-control">
-                        <option value="">-- Choose an item --</option>
-                        ${allItems.map(item => `
-                            <option value="${item.id}" data-type="${item.type}">
-                                [${this.getTypeLabel(item.type)}] ${Utils.escapeHtml(item.name)}
-                            </option>
-                        `).join('')}
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="showReverseRelationships" checked />
-                        Show reverse relationships (items that reference this)
-                    </label>
-                </div>
-                
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="showIndirectRelationships" />
-                        Show indirect relationships (2+ degrees of separation)
-                    </label>
-                </div>
-                
-                <div id="filterResults" class="filter-results" style="display: none;">
-                    <!-- Results will be populated here -->
-                </div>
-                
-                <div class="modal-actions">
-                    <button class="btn btn-secondary" onclick="Modal.close()">Close</button>
-                    <button class="btn btn-primary" id="applyFilterBtn">
-                        Find Relationships
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        Modal.open(content);
-        
-        // Attach event listeners
-        document.getElementById('applyFilterBtn').addEventListener('click', () => {
-            this.performFilter();
-        });
-        
-        document.getElementById('filterItemSelect').addEventListener('change', (e) => {
-            if (e.target.value) {
-                document.getElementById('applyFilterBtn').disabled = false;
-            }
-        });
-    },
-
-    getTypeLabel(type) {
-        const labels = {
-            'task': 'Task',
-            'asset': 'Asset',
-            'milestone': 'Milestone',
-            'class': 'Class',
-            'mechanic': 'Mechanic',
-            'character': 'Character',
-            'location': 'Location',
-            'timeline': 'Timeline',
-            'conflict': 'Conflict',
-            'theme': 'Theme',
-            'act': 'Act',
-            'scene': 'Scene',
-            'note': 'Note'
-        };
-        return labels[type] || type;
-    },
-
-    performFilter() {
-        const selectEl = document.getElementById('filterItemSelect');
-        const itemId = selectEl.value;
-        const itemType = selectEl.selectedOptions[0]?.getAttribute('data-type');
-        
-        if (!itemId || !itemType) {
-            alert('Please select an item');
-            return;
-        }
-        
-        const showReverse = document.getElementById('showReverseRelationships').checked;
-        const showIndirect = document.getElementById('showIndirectRelationships').checked;
-        
-        const allItems = this.getAllItems();
-        const selectedItem = allItems.find(i => i.id === itemId && i.type === itemType);
-        
-        if (!selectedItem) {
-            alert('Selected item not found');
-            return;
-        }
-        
-        // Find direct relationships (items this item references)
-        const directRelationships = this.findDirectRelationships(selectedItem);
-        
-        // Find reverse relationships (items that reference this item)
-        let reverseRelationships = [];
-        if (showReverse) {
-            reverseRelationships = this.findReverseRelationships(selectedItem, allItems);
-        }
-        
-        // Find indirect relationships (2+ degrees)
-        let indirectRelationships = [];
-        if (showIndirect) {
-            indirectRelationships = this.findIndirectRelationships(selectedItem, allItems);
-        }
-        
-        this.displayFilterResults(selectedItem, directRelationships, reverseRelationships, indirectRelationships);
-    },
-
-    findDirectRelationships(item) {
-        // Use the exact same logic as the relationship graph
-        const related = [];
-        const allItems = this.getAllItems();
-        
-        if (item.data.relatedItems && Array.isArray(item.data.relatedItems)) {
-            item.data.relatedItems.forEach(relItem => {
-                // relatedItems contains objects with id and type
-                const relId = typeof relItem === 'object' ? relItem.id : relItem;
-                const relType = typeof relItem === 'object' ? relItem.type : null;
-                
-                const relatedItem = allItems.find(i => {
-                    if (relType) {
-                        return i.id === relId && i.type === relType;
-                    }
-                    return i.id === relId;
-                });
-                
-                if (relatedItem) {
-                    related.push(relatedItem);
-                }
-            });
-        }
-        
-        return related;
-    },
-
-    findReverseRelationships(targetItem, allItems) {
-        // Use RelationshipManager.getReferencedBy - same as the graph uses
-        const referencedBy = RelationshipManager.getReferencedBy(targetItem.id);
-        const reverse = [];
-        
-        referencedBy.forEach(ref => {
-            const refItem = allItems.find(i => i.id === ref.id && i.type === ref.type);
-            if (refItem) {
-                reverse.push(refItem);
-            }
-        });
-        
-        return reverse;
-    },
-
-    findIndirectRelationships(targetItem, allItems) {
-        const indirect = [];
-        const directIds = this.findDirectRelationships(targetItem).map(i => i.id);
-        const reverseIds = this.findReverseRelationships(targetItem, allItems).map(i => i.id);
-        const connectedIds = new Set([...directIds, ...reverseIds, targetItem.id]);
-        
-        // Find items connected to directly connected items
-        allItems.forEach(item => {
-            if (connectedIds.has(item.id)) return; // Skip already connected
-            
-            const itemRelations = this.extractRelationshipIds(item);
-            const hasIndirectConnection = itemRelations.some(relId => connectedIds.has(relId));
-            
-            if (hasIndirectConnection) {
-                indirect.push(item);
-            }
-        });
-        
-        return indirect;
-    },
-
-    displayFilterResults(selectedItem, direct, reverse, indirect) {
-        const resultsDiv = document.getElementById('filterResults');
-        if (!resultsDiv) return;
-        
-        const total = direct.length + reverse.length + indirect.length;
-        
-        if (total === 0) {
-            resultsDiv.innerHTML = `
-                <div class="filter-no-results">
-                    <p>No relationships found for "${Utils.escapeHtml(selectedItem.name)}"</p>
-                </div>
-            `;
-            resultsDiv.style.display = 'block';
-            return;
-        }
-        
-        let html = `
-            <div class="filter-results-header">
-                <h4>Relationships for: ${Utils.escapeHtml(selectedItem.name)}</h4>
-                <p>${total} related item${total !== 1 ? 's' : ''} found</p>
-            </div>
-        `;
-        
-        // Group items by type
-        const groupByType = (items) => {
-            const grouped = {};
-            items.forEach(item => {
-                if (!grouped[item.type]) grouped[item.type] = [];
-                grouped[item.type].push(item);
-            });
-            return grouped;
-        };
-        
-        if (direct.length > 0) {
-            html += `<div class="filter-section">
-                <h5>→ Direct Relationships (${direct.length})</h5>
-                <p class="filter-section-desc">Items that "${Utils.escapeHtml(selectedItem.name)}" references</p>
-            `;
-            
-            const grouped = groupByType(direct);
-            Object.keys(grouped).sort().forEach(type => {
-                html += `<div class="filter-type-group">
-                    <h6>${this.getTypeLabel(type)} (${grouped[type].length})</h6>
-                    <div class="filter-items">`;
-                
-                grouped[type].forEach(item => {
-                    const actIdAttr = item.actId ? `data-act-id="${item.actId}"` : '';
-                    html += `
-                        <div class="filter-item" data-id="${item.id}" data-type="${item.type}" ${actIdAttr}>
-                            <span class="filter-item-icon">${Utils.icon('navigation/' + type + 's', 'small')}</span>
-                            <span class="filter-item-name">${Utils.escapeHtml(item.name)}</span>
-                        </div>
-                    `;
-                });
-                
-                html += `</div></div>`;
-            });
-            html += `</div>`;
-        }
-        
-        if (reverse.length > 0) {
-            html += `<div class="filter-section">
-                <h5>← Reverse Relationships (${reverse.length})</h5>
-                <p class="filter-section-desc">Items that reference "${Utils.escapeHtml(selectedItem.name)}"</p>
-            `;
-            
-            const grouped = groupByType(reverse);
-            Object.keys(grouped).sort().forEach(type => {
-                html += `<div class="filter-type-group">
-                    <h6>${this.getTypeLabel(type)} (${grouped[type].length})</h6>
-                    <div class="filter-items">`;
-                
-                grouped[type].forEach(item => {
-                    const actIdAttr = item.actId ? `data-act-id="${item.actId}"` : '';
-                    html += `
-                        <div class="filter-item" data-id="${item.id}" data-type="${item.type}" ${actIdAttr}>
-                            <span class="filter-item-icon">${Utils.icon('navigation/' + type + 's', 'small')}</span>
-                            <span class="filter-item-name">${Utils.escapeHtml(item.name)}</span>
-                        </div>
-                    `;
-                });
-                
-                html += `</div></div>`;
-            });
-            html += `</div>`;
-        }
-        
-        if (indirect.length > 0) {
-            html += `<div class="filter-section">
-                <h5>↔ Indirect Relationships (${indirect.length})</h5>
-                <p class="filter-section-desc">Items connected through other relationships</p>
-            `;
-            
-            const grouped = groupByType(indirect);
-            Object.keys(grouped).sort().forEach(type => {
-                html += `<div class="filter-type-group">
-                    <h6>${this.getTypeLabel(type)} (${grouped[type].length})</h6>
-                    <div class="filter-items">`;
-                
-                grouped[type].forEach(item => {
-                    const actIdAttr = item.actId ? `data-act-id="${item.actId}"` : '';
-                    html += `
-                        <div class="filter-item" data-id="${item.id}" data-type="${item.type}" ${actIdAttr}>
-                            <span class="filter-item-icon">${Utils.icon('navigation/' + type + 's', 'small')}</span>
-                            <span class="filter-item-name">${Utils.escapeHtml(item.name)}</span>
-                        </div>
-                    `;
-                });
-                
-                html += `</div></div>`;
-            });
-            html += `</div>`;
-        }
-        
-        resultsDiv.innerHTML = html;
-        resultsDiv.style.display = 'block';
-        
-        // Add click handlers to navigate to items
-        resultsDiv.querySelectorAll('.filter-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const id = item.getAttribute('data-id');
-                const type = item.getAttribute('data-type');
-                const actId = item.getAttribute('data-act-id');
-                this.navigateToItem(id, type, actId);
-            });
-        });
-    },
-
-    navigateToItem(id, type, actId) {
-        // Close modal
-        Modal.close();
-        
-        // Use the Search object's navigation methods
-        if (type === 'task') Search.openTask(id);
-        else if (type === 'asset') Search.openAsset(id);
-        else if (type === 'milestone') Search.openMilestone(id);
-        else if (type === 'class') Search.openClass(id);
-        else if (type === 'mechanic') Search.openMechanic(id);
-        else if (type === 'character') Search.openCharacter(id);
-        else if (type === 'location') Search.openLocation(id);
-        else if (type === 'timeline') Search.openTimeline(id);
-        else if (type === 'conflict') Search.openConflict(id);
-        else if (type === 'theme') Search.openTheme(id);
-        else if (type === 'act') Search.openAct(id);
-        else if (type === 'scene') Search.openScene(actId, id);
-        else if (type === 'note') Search.openNote(id);
-    }
-};
-*/
 
 // ============================================
 // Data Manager (Export/Import)

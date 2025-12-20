@@ -4321,6 +4321,7 @@ input[type="file"]:focus {
     background: var(--bg-tertiary);
     border-radius: 6px;
     font-size: 0.75rem;
+    color: var(--text-primary);
 }
 
 /* Character modal tabs */

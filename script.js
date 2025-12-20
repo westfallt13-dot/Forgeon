@@ -7864,37 +7864,47 @@ const StoryManager = {
         if (!levelData) return;
         if (!levelData.selectedAbilities) levelData.selectedAbilities = [];
         
-        if (inherited.availableAbilities.length === 0) {
-            alert('No abilities available at this level from your classes.');
-            return;
-        }
-        
         const modalHTML = `
             <div class="ability-selection-modal">
                 <h2><img src="icons/misc/combat.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Select Abilities - Level ${level}</h2>
                 <p>Choose which abilities ${Utils.escapeHtml(character.name)} has learned</p>
                 
-                <div class="ability-selection-list">
-                    ${inherited.availableAbilities.map(ability => {
-                        const isSelected = levelData.selectedAbilities.some(a => a.name === ability.name && a.classId === ability.classId);
-                        return `
-                        <label class="ability-option ${isSelected ? 'selected' : ''}">
-                            <input type="checkbox" class="ability-checkbox" 
-                                   data-ability="${Utils.escapeHtml(ability.name)}"
-                                   data-class-id="${ability.classId}"
-                                   ${isSelected ? 'checked' : ''}>
-                            <div class="ability-info">
-                                <span class="ability-name">${Utils.escapeHtml(ability.name)}</span>
-                                <span class="ability-source">from ${Utils.escapeHtml(ability.className)}</span>
+                ${inherited.availableAbilities.length > 0 ? `
+                    <div class="ability-selection-list">
+                        ${inherited.availableAbilities.map(ability => {
+                            const isSelected = levelData.selectedAbilities.some(a => a.name === ability.name && a.classId === ability.classId);
+                            return `
+                            <label class="ability-option ${isSelected ? 'selected' : ''}">
+                                <input type="checkbox" class="ability-checkbox" 
+                                       data-ability="${Utils.escapeHtml(ability.name)}"
+                                       data-class-id="${ability.classId}"
+                                       ${isSelected ? 'checked' : ''}>
+                                <div class="ability-info">
+                                    <span class="ability-name">${Utils.escapeHtml(ability.name)}</span>
+                                    <span class="ability-source">from ${Utils.escapeHtml(ability.className)}</span>
+                                </div>
+                            </label>
+                            `;
+                        }).join('')}
+                    </div>
+                ` : '<p class="empty-state-small">No abilities inherited from classes</p>'}
+                
+                <div style="margin-top: 16px;">
+                    <h4 style="margin-bottom: 8px;">Custom Abilities</h4>
+                    <div id="customAbilitiesList">
+                        ${levelData.selectedAbilities.filter(a => a.isCustom).map((ability, index) => `
+                            <div class="custom-ability-item" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                                <input type="text" class="custom-ability-name" value="${Utils.escapeHtml(ability.name)}" style="flex: 1;" placeholder="Ability name">
+                                <button type="button" class="btn-icon-small remove-custom-ability" data-index="${index}">✕</button>
                             </div>
-                        </label>
-                        `;
-                    }).join('')}
+                        `).join('')}
+                    </div>
+                    <button type="button" class="btn btn-small btn-secondary" id="addCustomAbilityBtn">+ Add Custom Ability</button>
                 </div>
                 
-                <div class="modal-actions">
+                <div class="modal-actions" style="margin-top: 20px;">
                     <button type="button" class="btn btn-primary" id="saveAbilitySelectionBtn">Save Selection</button>
-                    <button type="button" class="btn btn-secondary" onclick="Modal.close()">Cancel</button>
+                    <button type="button" class="btn btn-secondary" id="cancelAbilitySelectionBtn">Cancel</button>
                 </div>
             </div>
         `;
@@ -7913,15 +7923,59 @@ const StoryManager = {
             });
         });
         
+        // Add custom ability button
+        document.getElementById('addCustomAbilityBtn')?.addEventListener('click', () => {
+            const customList = document.getElementById('customAbilitiesList');
+            const index = customList.querySelectorAll('.custom-ability-item').length;
+            const itemHtml = `
+                <div class="custom-ability-item" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                    <input type="text" class="custom-ability-name" value="" style="flex: 1;" placeholder="Ability name">
+                    <button type="button" class="btn-icon-small remove-custom-ability" data-index="${index}">✕</button>
+                </div>
+            `;
+            customList.insertAdjacentHTML('beforeend', itemHtml);
+            
+            // Attach remove handler to new button
+            customList.querySelector(`.remove-custom-ability[data-index="${index}"]`).addEventListener('click', (e) => {
+                e.target.closest('.custom-ability-item').remove();
+            });
+        });
+        
+        // Remove custom ability handlers
+        document.querySelectorAll('.remove-custom-ability').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.target.closest('.custom-ability-item').remove();
+            });
+        });
+        
+        // Cancel button - return to spreadsheet
+        document.getElementById('cancelAbilitySelectionBtn')?.addEventListener('click', () => {
+            this.openSpreadsheetEditor(character);
+        });
+        
         // Save button
         document.getElementById('saveAbilitySelectionBtn').addEventListener('click', () => {
             levelData.selectedAbilities = [];
             
+            // Save inherited abilities
             document.querySelectorAll('.ability-checkbox:checked').forEach(checkbox => {
                 levelData.selectedAbilities.push({
                     name: checkbox.dataset.ability,
-                    classId: checkbox.dataset.classId
+                    classId: checkbox.dataset.classId,
+                    isCustom: false
                 });
+            });
+            
+            // Save custom abilities
+            document.querySelectorAll('.custom-ability-name').forEach(input => {
+                const name = input.value.trim();
+                if (name) {
+                    levelData.selectedAbilities.push({
+                        name: name,
+                        classId: null,
+                        isCustom: true
+                    });
+                }
             });
             
             AppState.save();
@@ -8073,69 +8127,83 @@ const StoryManager = {
         
         Modal.open(spreadsheetHTML);
         
-        // Add stat column handler
-        document.getElementById('addStatColumnBtn').addEventListener('click', () => {
-            const statName = prompt('Enter stat/attribute name:');
-            if (!statName) return;
-            
-            // Add header
-            const thead = document.querySelector('#characterSpreadsheetTable thead tr');
-            const abilitiesHeader = thead.querySelector('th:last-child');
-            const newHeader = document.createElement('th');
-            newHeader.className = 'stat-header';
-            newHeader.dataset.stat = statName;
-            newHeader.textContent = statName;
-            thead.insertBefore(newHeader, abilitiesHeader);
-            
-            // Add input to each row
-            const rows = document.querySelectorAll('#spreadsheetBody tr');
-            rows.forEach(row => {
-                const abilitiesCell = row.querySelector('td:last-child');
-                const newCell = document.createElement('td');
-                newCell.innerHTML = `<input type="number" class="stat-input" data-stat="${Utils.escapeHtml(statName)}" value="" step="0.1" placeholder="0">`;
-                row.insertBefore(newCell, abilitiesCell);
-            });
-        });
-        
-        // Ability selection button handlers
-        document.querySelectorAll('.ability-select-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const level = parseInt(btn.dataset.level);
-                this.openAbilitySelectionModal(character, level);
-            });
-        });
-        
-        // Save spreadsheet handler
-        document.getElementById('saveSpreadsheetBtn').addEventListener('click', () => {
-            const rows = document.querySelectorAll('#spreadsheetBody tr');
-            
-            rows.forEach(row => {
-                const level = parseInt(row.dataset.level);
-                const levelData = character.levelSpreadsheet.find(l => l.level === level);
+        // Wait for modal to render before attaching event listeners
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                // Add stat column handler
+                const addStatBtn = document.getElementById('addStatColumnBtn');
+                if (addStatBtn) {
+                    addStatBtn.addEventListener('click', () => {
+                        const statName = prompt('Enter stat/attribute name:');
+                        if (!statName) return;
+                        
+                        // Add header
+                        const thead = document.querySelector('#characterSpreadsheetTable thead tr');
+                        const abilitiesHeader = thead.querySelector('th:last-child');
+                        const newHeader = document.createElement('th');
+                        newHeader.className = 'stat-header';
+                        newHeader.dataset.stat = statName;
+                        newHeader.textContent = statName;
+                        thead.insertBefore(newHeader, abilitiesHeader);
+                        
+                        // Add input to each row
+                        const rows = document.querySelectorAll('#spreadsheetBody tr');
+                        rows.forEach(row => {
+                            const abilitiesCell = row.querySelector('td:last-child');
+                            const newCell = document.createElement('td');
+                            newCell.innerHTML = `<input type="number" class="stat-input" data-stat="${Utils.escapeHtml(statName)}" value="" step="0.1" placeholder="0">`;
+                            row.insertBefore(newCell, abilitiesCell);
+                        });
+                    });
+                }
                 
-                if (levelData) {
-                    // Collect all stat inputs
-                    row.querySelectorAll('.stat-input').forEach(input => {
-                        const statName = input.dataset.stat;
-                        const value = parseFloat(input.value) || 0;
-                        levelData.stats[statName] = value;
+                // Ability selection button handlers
+                document.querySelectorAll('.ability-select-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const level = parseInt(btn.dataset.level);
+                        this.openAbilitySelectionModal(character, level);
+                    });
+                });
+                
+                // Save spreadsheet handler
+                const saveBtn = document.getElementById('saveSpreadsheetBtn');
+                if (saveBtn) {
+                    saveBtn.addEventListener('click', () => {
+                        const rows = document.querySelectorAll('#spreadsheetBody tr');
+                        
+                        rows.forEach(row => {
+                            const level = parseInt(row.dataset.level);
+                            const levelData = character.levelSpreadsheet.find(l => l.level === level);
+                            
+                            if (levelData) {
+                                // Collect all stat inputs
+                                row.querySelectorAll('.stat-input').forEach(input => {
+                                    const statName = input.dataset.stat;
+                                    const value = parseFloat(input.value) || 0;
+                                    levelData.stats[statName] = value;
+                                });
+                            }
+                        });
+                        
+                        // Find and update character in AppState
+                        const charIndex = AppState.story.characters.findIndex(c => c.id === character.id);
+                        if (charIndex !== -1) {
+                            AppState.story.characters[charIndex].levelSpreadsheet = character.levelSpreadsheet;
+                            AppState.save();
+                            alert('✅ Spreadsheet saved successfully!');
+                        }
+                    });
+                }
+                
+                // Export CSV handler
+                const exportBtn = document.getElementById('exportSpreadsheetCSVBtn');
+                if (exportBtn) {
+                    exportBtn.addEventListener('click', () => {
+                        this.exportSpreadsheetCSV(character);
                     });
                 }
             });
-            
-            // Find and update character in AppState
-            const charIndex = AppState.story.characters.findIndex(c => c.id === character.id);
-            if (charIndex !== -1) {
-                AppState.story.characters[charIndex].levelSpreadsheet = updatedSpreadsheet;
-                AppState.save();
-                alert('✅ Spreadsheet saved successfully!');
-            }
-        });
-        
-        // Export CSV handler
-        document.getElementById('exportSpreadsheetCSVBtn').addEventListener('click', () => {
-            this.exportSpreadsheetCSV(character);
         });
     },
     
@@ -8501,8 +8569,8 @@ const StoryManager = {
                     </div>
                     
                     <div class="form-group">
-                        <label>Custom Attribute Modifiers (per level)</label>
-                        <small class="form-hint">Override base class attributes with custom growth per level</small>
+                        <label>Custom Attribute Modifiers</label>
+                        <small class="form-hint">Override base class attributes with custom growth rates (edit specific level values in the Level Progression Spreadsheet)</small>
                         <div id="customAttributesList">
                             ${this.renderCustomAttributeInputs(isEdit ? characterToEdit.customAttributes : null)}
                         </div>
@@ -9198,7 +9266,7 @@ const StoryManager = {
         const roleColors = {
             protagonist: 'var(--primary-color)',
             antagonist: 'var(--danger-color)',
-            supporting: 'var(--accent-color)',
+            supporting: 'var(--text-secondary)',
             minor: 'var(--text-secondary)'
         };
         
@@ -9520,9 +9588,9 @@ const StoryManager = {
         }
         
         const typeIcons = {
-            interior: '🏠',
-            exterior: '🌳',
-            world: '🗺️'
+            interior: '<img src="icons/story/location.svg" alt="Interior" width="16" height="16" style="vertical-align: middle;">',
+            exterior: '<img src="icons/story/location.svg" alt="Exterior" width="16" height="16" style="vertical-align: middle;">',
+            world: '<img src="icons/story/location.svg" alt="World" width="16" height="16" style="vertical-align: middle;">'
         };
         
         const html = locations.map(loc => {
@@ -9530,7 +9598,7 @@ const StoryManager = {
             return `
             <div class="location-card" onclick="StoryManager.openAddLocationModal(AppState.story.locations.find(l => l.id === '${loc.id}'))">
                 <div class="location-card-header">
-                    <h4>${typeIcons[loc.type]} ${Utils.escapeHtml(loc.name)}</h4>
+                    <h4>${typeIcons[loc.type] || typeIcons['interior']} ${Utils.escapeHtml(loc.name)}</h4>
                 </div>
                 ${loc.description ? `<p class="location-description">${Utils.escapeHtml(loc.description.substring(0, 120))}${loc.description.length > 120 ? '...' : ''}</p>` : ''}
                 ${linkedAssets.length > 0 ? `

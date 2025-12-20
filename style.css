@@ -6,6 +6,7 @@
     --primary-color: #E02424;
     --primary-hover: #C01F1F;
     --secondary-color: #8b5cf6;
+    --accent-color: #8b5cf6;
     --success-color: #10b981;
     --warning-color: #f59e0b;
     --danger-color: #ef4444;
@@ -32,6 +33,7 @@
 
 /* Dark Theme */
 [data-theme="dark"] {
+    --accent-color: #8b5cf6;
     --bg-primary: #1f2937;
     --bg-secondary: #111827;
     --bg-tertiary: #374151;
@@ -4285,7 +4287,7 @@ input[type="file"]:focus {
     padding: 0.25rem 0.75rem;
     border-radius: 20px;
     font-size: 0.75rem;
-    color: white;
+    color: white !important;
     font-weight: 600;
 }
 

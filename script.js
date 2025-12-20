@@ -17157,7 +17157,19 @@ const AIAssistant = {
         try {
             // Get AI response
             const response = await this.getAIResponse(message);
-            this.addMessage('assistant', response);
+            
+            // For streaming responses, message was already added by streaming
+            // Only add if not streaming or if response has content not yet displayed
+            if (!this.streamingSetup || !response) {
+                this.addMessage('assistant', response);
+            } else {
+                // Update chat history with the complete response
+                const timestamp = new Date();
+                const msg = { role: 'assistant', content: response, timestamp: timestamp.toISOString() };
+                this.chatHistory.push(msg);
+                this.saveHistory();
+            }
+            
             this.setStatus('ready', this.getStatusText());
         } catch (error) {
             console.error('AI Error:', error);
@@ -17358,43 +17370,47 @@ const AIAssistant = {
                 }
             }
             
-            // Build prompt with context - simplified for GGUF models
-            const contextSummary = {
-                project: context.projectName,
-                tasks: `${context.tasks.completed}/${context.tasks.total} completed`,
-                assets: `${context.assets.total} total`,
-                classes: `${context.classes.total} character classes`,
-                mechanics: `${context.mechanics.total} game mechanics`,
-                story: {
-                    characters: context.story.characters.total,
-                    locations: context.story.locations.total,
-                    items: context.story.items.total,
-                    acts: context.story.acts.items
+            // Build a very simple, direct prompt for GGUF models
+            // Use instruction format to prevent echoing
+            let contextInfo = '';
+            
+            // Add minimal context only if relevant to the question
+            const lowerMsg = userMessage.toLowerCase();
+            
+            if (lowerMsg.includes('scene')) {
+                const scenes = context.story.scenes.items;
+                if (scenes.length > 0) {
+                    contextInfo += 'Scenes:\n';
+                    scenes.forEach(s => {
+                        contextInfo += `- "${s.sceneTitle}" in ${s.actTitle}\n`;
+                    });
+                } else {
+                    contextInfo += 'No scenes created yet.\n';
                 }
-            };
+            } else if (lowerMsg.includes('character')) {
+                const chars = context.story.characters.items;
+                if (chars.length > 0) {
+                    contextInfo += 'Characters: ' + chars.map(c => `${c.name} (${c.role})`).join(', ') + '\n';
+                }
+            } else if (lowerMsg.includes('act')) {
+                const acts = context.story.acts.items;
+                if (acts.length > 0) {
+                    contextInfo += 'Acts:\n';
+                    acts.forEach(a => {
+                        contextInfo += `- ${a.title} (${a.scenes.length} scenes)\n`;
+                    });
+                }
+            }
             
-            // Build conversation history
-            const recentHistory = this.chatHistory.slice(-5).map(msg => 
-                `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
-            ).join('\n');
-            
-            const prompt = `You are an AI assistant helping with game design. Here's the current project state:
-
-Project: ${contextSummary.project}
-Tasks: ${contextSummary.tasks}
-Assets: ${contextSummary.assets}
-Classes: ${contextSummary.classes}
-Mechanics: ${contextSummary.mechanics}
-Story: ${contextSummary.story.acts.length} acts with ${contextSummary.story.characters} characters, ${contextSummary.story.locations} locations
-
-${recentHistory ? 'Recent conversation:\n' + recentHistory + '\n\n' : ''}User: ${userMessage}\n\nAssistant:`;
+            // Build simple instruction-following prompt
+            const prompt = `### Instruction:\nAnswer this question about a game design project: ${userMessage}\n\n${contextInfo ? '### Context:\n' + contextInfo + '\n' : ''}### Response:`;
             
             // Generate response with streaming
             this.setupGenerationStreaming();
             
             const result = await window.electronAPI.generateText(prompt, {
                 temperature: config.temperature,
-                maxTokens: 512,
+                maxTokens: 256,
                 threads: 4
             });
             
@@ -17453,11 +17469,30 @@ ${recentHistory ? 'Recent conversation:\n' + recentHistory + '\n\n' : ''}User: $
         
         if (isElectron && window.electronAPI.onGenerationProgress) {
             window.electronAPI.onGenerationProgress((token) => {
-                // Update the last message with streaming tokens
+                // Find or create the assistant message being streamed
                 const messages = document.querySelectorAll('.ai-message');
-                const lastMessage = messages[messages.length - 1];
-                if (lastMessage && lastMessage.classList.contains('ai')) {
-                    lastMessage.querySelector('.message-content').textContent += token;
+                let lastMessage = messages[messages.length - 1];
+                
+                // If last message is not assistant or doesn't exist, create one
+                if (!lastMessage || !lastMessage.classList.contains('assistant')) {
+                    const timestamp = new Date();
+                    const message = { 
+                        role: 'assistant', 
+                        content: '', 
+                        timestamp: timestamp.toISOString() 
+                    };
+                    this.renderMessage(message);
+                    lastMessage = document.querySelectorAll('.ai-message')[document.querySelectorAll('.ai-message').length - 1];
+                }
+                
+                // Append token to message text
+                const messageText = lastMessage.querySelector('.message-text');
+                if (messageText) {
+                    messageText.textContent += token;
+                    
+                    // Scroll to bottom
+                    const container = document.getElementById('aiChatContainer');
+                    container.scrollTop = container.scrollHeight;
                 }
             });
             this.streamingSetup = true;
@@ -17773,8 +17808,24 @@ ${JSON.stringify(context, null, 2)}`
     
     buildContext() {
         // Build a comprehensive context object with all project data
+        const currentProject = ProjectManager.getCurrentProject();
+        
+        // Get all scenes from all acts
+        const allScenes = [];
+        AppState.story.acts?.forEach(act => {
+            if (act.scenes && act.scenes.length > 0) {
+                act.scenes.forEach(scene => {
+                    allScenes.push({
+                        actTitle: act.title,
+                        sceneTitle: scene.title,
+                        description: scene.description
+                    });
+                });
+            }
+        });
+        
         return {
-            projectName: AppState.notes?.find(n => n.category === 'Project')?.title || 'Untitled Game',
+            projectName: currentProject?.name || AppState.notes?.find(n => n.category === 'Project')?.title || 'Untitled Game',
             tasks: {
                 total: AppState.tasks.length,
                 completed: AppState.tasks.filter(t => t.status === 'Completed').length,
@@ -17831,8 +17882,12 @@ ${JSON.stringify(context, null, 2)}`
                     items: AppState.story.acts?.map(a => ({
                         id: a.id,
                         title: a.title,
-                        scenes: a.scenes?.length || 0
+                        scenes: a.scenes?.map(s => ({ title: s.title, description: s.description })) || []
                     })) || []
+                },
+                scenes: {
+                    total: allScenes.length,
+                    items: allScenes
                 }
             }
         };
@@ -19221,9 +19276,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     `;
     document.head.appendChild(style);
-    
-    // Initialize Relationship Graph (REMOVED)
-    // RelationshipGraph.init();
+
     
     // Override global alert() and confirm() to prevent focus issues
     // Store original functions

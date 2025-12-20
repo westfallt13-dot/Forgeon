@@ -237,47 +237,16 @@ ipcMain.handle('load-model', async (event, modelPath, options = {}) => {
         // Get llama instance
         const llamaInstance = await getLlama();
         
-        // Load model
+        // Load model with CPU fallback
         const model = await llamaInstance.loadModel({
-            modelPath: modelPath
+            modelPath: modelPath,
+            gpuLayers: 0  // Force CPU mode to avoid VRAM issues
         });
         
-        // Create context with fallback for insufficient memory
-        let contextSize = options.contextLength || 512;
-        let context;
-        
-        try {
-            context = await model.createContext({
-                contextSize: contextSize
-            });
-        } catch (error) {
-            // If memory error, try with smaller context sizes
-            if (error.message && error.message.includes('VRAM')) {
-                console.warn(`Context size ${contextSize} too large, trying smaller sizes...`);
-                const fallbackSizes = [2048, 1024, 512, 256];
-                
-                for (const size of fallbackSizes) {
-                    if (size >= contextSize) continue;
-                    
-                    try {
-                        console.log(`Attempting context size: ${size}`);
-                        context = await model.createContext({
-                            contextSize: size
-                        });
-                        console.log(`Successfully loaded with context size: ${size}`);
-                        break;
-                    } catch (fallbackError) {
-                        console.warn(`Context size ${size} failed:`, fallbackError.message);
-                    }
-                }
-                
-                if (!context) {
-                    throw new Error('Unable to create context with any available size. Try closing other applications to free up VRAM.');
-                }
-            } else {
-                throw error;
-            }
-        }
+        // Create context
+        const context = await model.createContext({
+            contextSize: options.contextLength || 512
+        });
         
         // Create chat session
         const session = new llama.LlamaChatSession({
@@ -329,10 +298,10 @@ ipcMain.handle('generate-text', async (event, prompt, options = {}) => {
         
         // Use chat session for generation
         const response = await currentSession.prompt(prompt, {
-            maxTokens: options.maxTokens || 512,
-            temperature: options.temperature || 0.7,
-            topK: options.topK || 40,
-            topP: options.topP || 0.9,
+            maxTokens: options.maxTokens,
+            temperature: options.temperature,
+            topK: options.topK,
+            topP: options.topP,
             onTextChunk: (chunk) => {
                 // Stream tokens as they're generated
                 generatedText += chunk;

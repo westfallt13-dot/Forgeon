@@ -3974,44 +3974,198 @@ const ClassesManager = {
         return AppState.classes.filter(cls => cls.classType === this.currentFilter);
     },
     
-    renderAttributeInputs(attributes) {
+    /**
+     * Updates tab labels and content based on class type (RPG vs OOP)
+     * @param {boolean} isOOP - True if Instance Class (OOP), false if Character Class (RPG)
+     */
+    updateTabsForClassType(isOOP) {
+        const tabs = document.querySelectorAll('.class-tab');
+        
+        // Update tab labels and descriptions
+        tabs.forEach(tab => {
+            const tabType = tab.dataset.tab;
+            
+            if (tabType === 'attributes') {
+                tab.textContent = isOOP ? 'Fields' : 'Attributes';
+                const label = document.querySelector('#attributesTab .form-group > label');
+                if (label) {
+                    label.textContent = isOOP ? 'Member Variables' : 'Base Attributes';
+                }
+                // Update add button text
+                const addBtn = document.getElementById('addAttributeBtn');
+                if (addBtn) {
+                    addBtn.textContent = isOOP ? '+ Add Field' : '+ Add Attribute';
+                }
+                // Update existing attribute placeholders
+                document.querySelectorAll('#attributesList .attr-name').forEach(input => {
+                    input.placeholder = isOOP ? 'Field name (e.g., position, velocity)' : 'Attribute name (e.g., Strength)';
+                });
+                document.querySelectorAll('#attributesList .attr-value').forEach(input => {
+                    input.placeholder = isOOP ? 'Default value' : 'Base value';
+                    if (isOOP) {
+                        input.type = 'text';
+                    } else {
+                        input.type = 'number';
+                    }
+                });
+            } else if (tabType === 'skills') {
+                tab.textContent = isOOP ? 'Methods' : 'Skills';
+                const label = document.querySelector('#skillsTab .form-group > label');
+                if (label) {
+                    label.textContent = isOOP ? 'Class Methods' : 'Skills & Abilities';
+                }
+                // Update button text
+                const addBtn = document.getElementById('addSkillBtn');
+                if (addBtn) {
+                    addBtn.textContent = isOOP ? '+ Add Method' : '+ Add Skill';
+                }
+            } else if (tabType === 'formulas') {
+                tab.textContent = isOOP ? 'Computed' : 'Formulas';
+                const label = document.querySelector('#formulasTab .form-group > label');
+                if (label) {
+                    label.textContent = isOOP ? 'Computed Properties' : 'Derived Stats Formulas';
+                }
+                // Update hint text
+                const hint = document.querySelector('#formulasTab .form-hint');
+                if (hint) {
+                    hint.textContent = isOOP 
+                        ? 'Define computed properties (e.g., fullName = firstName + " " + lastName)'
+                        : 'Use attribute names in formulas (e.g., strength * 10 + level * 5)';
+                }
+                // Update add button text
+                const addBtn = document.getElementById('addFormulaBtn');
+                if (addBtn) {
+                    addBtn.textContent = isOOP ? '+ Add Computed Property' : '+ Add Formula';
+                }
+                // Update existing formula placeholders
+                document.querySelectorAll('#formulasList .formula-name').forEach(input => {
+                    input.placeholder = isOOP ? 'Property name (e.g., fullName)' : 'Stat name (e.g., Max HP)';
+                });
+                document.querySelectorAll('#formulasList .formula-expression').forEach(input => {
+                    input.placeholder = isOOP ? 'Expression (e.g., firstName + " " + lastName)' : 'Formula (e.g., strength * 10 + level * 5)';
+                });
+            } else if (tabType === 'properties') {
+                tab.textContent = isOOP ? 'Static Props' : 'Properties';
+                const label = document.querySelector('#propertiesTab .form-group > label');
+                if (label) {
+                    label.innerHTML = isOOP ? 'Static Properties & Constants' : 'Custom Properties (one per line)';
+                }
+                // Update textarea placeholder
+                const textarea = document.getElementById('classProperties');
+                if (textarea) {
+                    textarea.placeholder = isOOP 
+                        ? 'maxInstances: 100\nDEFAULT_SPEED: 5.0\ntypeName: string'
+                        : 'health: 100\nspeed: 5.0\nname: string';
+                }
+            }
+        });
+        
+        // Update skill/method field labels dynamically
+        this.updateSkillFieldLabels(isOOP);
+    },
+    
+    /**
+     * Updates skill/method input field labels based on class type
+     * @param {boolean} isOOP - True if Instance Class (OOP)
+     */
+    updateSkillFieldLabels(isOOP) {
+        document.querySelectorAll('#skillsList .skill-field-label').forEach((label, index) => {
+            const fieldIndex = index % 3;
+            if (fieldIndex === 0) {
+                label.textContent = isOOP ? 'Method Name' : 'Skill Name';
+                // Update input placeholder for first field
+                const input = label.nextElementSibling;
+                if (input) {
+                    input.placeholder = isOOP ? 'Method name' : 'Skill name';
+                }
+            } else if (fieldIndex === 1) {
+                label.textContent = isOOP ? 'Parameters' : 'Unlock Level';
+                // Update input type and placeholder
+                const input = label.nextElementSibling;
+                if (input) {
+                    if (isOOP) {
+                        input.type = 'text';
+                        input.placeholder = 'x, y, z';
+                        input.removeAttribute('min');
+                        input.title = 'Method parameters (comma-separated)';
+                    } else {
+                        input.type = 'number';
+                        input.placeholder = 'Level';
+                        input.setAttribute('min', '1');
+                        input.title = 'Level when this skill is unlocked';
+                    }
+                }
+            } else if (fieldIndex === 2) {
+                label.textContent = isOOP ? 'Return Type' : 'Power Value';
+                // Update input type and placeholder
+                const input = label.nextElementSibling;
+                if (input) {
+                    if (isOOP) {
+                        input.type = 'text';
+                        input.placeholder = 'void, string, etc.';
+                        input.removeAttribute('min');
+                        input.removeAttribute('step');
+                        input.title = 'Method return type';
+                    } else {
+                        input.type = 'number';
+                        input.placeholder = 'Power';
+                        input.setAttribute('min', '0');
+                        input.setAttribute('step', '1');
+                        input.title = 'Power rating for balance testing';
+                    }
+                }
+            }
+        });
+        
+        // Update requires field placeholder
+        document.querySelectorAll('#skillsList .skill-requires').forEach(input => {
+            input.placeholder = isOOP 
+                ? 'Required methods or dependencies'
+                : 'Required skills (comma-separated)';
+        });
+    },
+    
+    renderAttributeInputs(attributes, isOOP = false) {
+        const fieldLabel = isOOP ? 'Field name (e.g., position, velocity)' : 'Attribute name (e.g., Strength)';
+        const valueLabel = isOOP ? 'Default value' : 'Base value';
+        
         if (!attributes || attributes.length === 0) {
             return `
                 <div class="attribute-input">
-                    <input type="text" class="attr-name" placeholder="Attribute name (e.g., Strength)" value="">
-                    <input type="number" class="attr-value" placeholder="Base value" value="10">
+                    <input type="text" class="attr-name" placeholder="${fieldLabel}" value="">
+                    <input type="${isOOP ? 'text' : 'number'}" class="attr-value" placeholder="${valueLabel}" value="${isOOP ? '' : '10'}">
                     <button type="button" class="btn-icon-small remove-item">✕</button>
                 </div>
             `;
         }
         return attributes.map(attr => `
             <div class="attribute-input">
-                <input type="text" class="attr-name" placeholder="Attribute name" value="${Utils.escapeHtml(attr.name)}">
-                <input type="number" class="attr-value" placeholder="Base value" value="${attr.value}">
+                <input type="text" class="attr-name" placeholder="${isOOP ? 'Field name' : 'Attribute name'}" value="${Utils.escapeHtml(attr.name)}">
+                <input type="${isOOP ? 'text' : 'number'}" class="attr-value" placeholder="${valueLabel}" value="${attr.value}">
                 <button type="button" class="btn-icon-small remove-item">✕</button>
             </div>
         `).join('');
     },
     
-    renderSkillInputs(skills) {
+    renderSkillInputs(skills, isOOP = false) {
         if (!skills || skills.length === 0) {
             return `
                 <div class="skill-input">
                     <div class="skill-input-row">
                         <div class="skill-field">
-                            <label class="skill-field-label">Skill Name</label>
-                            <input type="text" class="skill-name" placeholder="Skill name" value="">
+                            <label class="skill-field-label">${isOOP ? 'Method Name' : 'Skill Name'}</label>
+                            <input type="text" class="skill-name" placeholder="${isOOP ? 'Method name' : 'Skill name'}" value="">
                         </div>
                         <div class="skill-field">
-                            <label class="skill-field-label">Unlock Level</label>
-                            <input type="number" class="skill-level" placeholder="Level" value="1" min="1" title="Level when this skill is unlocked">
+                            <label class="skill-field-label">${isOOP ? 'Parameters' : 'Unlock Level'}</label>
+                            <input type="${isOOP ? 'text' : 'number'}" class="skill-level" placeholder="${isOOP ? 'x, y, z' : 'Level'}" value="${isOOP ? '' : '1'}" ${!isOOP ? 'min="1"' : ''} title="${isOOP ? 'Method parameters (comma-separated)' : 'Level when this skill is unlocked'}">
                         </div>
                         <div class="skill-field">
-                            <label class="skill-field-label">Power Value</label>
-                            <input type="number" class="skill-power" placeholder="Power" value="10" min="0" step="1" title="Power rating for balance testing">
+                            <label class="skill-field-label">${isOOP ? 'Return Type' : 'Power Value'}</label>
+                            <input type="${isOOP ? 'text' : 'number'}" class="skill-power" placeholder="${isOOP ? 'void, string, etc.' : 'Power'}" value="${isOOP ? 'void' : '10'}" ${!isOOP ? 'min="0" step="1"' : ''} title="${isOOP ? 'Method return type' : 'Power rating for balance testing'}">
                         </div>
                     </div>
-                    <input type="text" class="skill-requires" placeholder="Required skills (comma-separated)" value="">
+                    <input type="text" class="skill-requires" placeholder="${isOOP ? 'Required methods or dependencies' : 'Required skills (comma-separated)'}" value="">
                     <textarea class="skill-description" placeholder="Description" rows="2"></textarea>
                     <button type="button" class="btn-icon-small remove-item">✕</button>
                 </div>
@@ -4021,39 +4175,42 @@ const ClassesManager = {
             <div class="skill-input">
                 <div class="skill-input-row">
                     <div class="skill-field">
-                        <label class="skill-field-label">Skill Name</label>
-                        <input type="text" class="skill-name" placeholder="Skill name" value="${Utils.escapeHtml(skill.name)}">
+                        <label class="skill-field-label">${isOOP ? 'Method Name' : 'Skill Name'}</label>
+                        <input type="text" class="skill-name" placeholder="${isOOP ? 'Method name' : 'Skill name'}" value="${Utils.escapeHtml(skill.name)}">
                     </div>
                     <div class="skill-field">
-                        <label class="skill-field-label">Unlock Level</label>
-                        <input type="number" class="skill-level" placeholder="Level" value="${skill.unlockLevel || 1}" min="1" title="Level when this skill is unlocked">
+                        <label class="skill-field-label">${isOOP ? 'Parameters' : 'Unlock Level'}</label>
+                        <input type="${isOOP ? 'text' : 'number'}" class="skill-level" placeholder="${isOOP ? 'x, y, z' : 'Level'}" value="${skill.unlockLevel || (isOOP ? '' : 1)}" ${!isOOP ? 'min="1"' : ''} title="${isOOP ? 'Method parameters (comma-separated)' : 'Level when this skill is unlocked'}">
                     </div>
                     <div class="skill-field">
-                        <label class="skill-field-label">Power Value</label>
-                        <input type="number" class="skill-power" placeholder="Power" value="${skill.power || 10}" min="0" step="1" title="Power rating for balance testing">
+                        <label class="skill-field-label">${isOOP ? 'Return Type' : 'Power Value'}</label>
+                        <input type="${isOOP ? 'text' : 'number'}" class="skill-power" placeholder="${isOOP ? 'void, string, etc.' : 'Power'}" value="${skill.power || (isOOP ? 'void' : 10)}" ${!isOOP ? 'min="0" step="1"' : ''} title="${isOOP ? 'Method return type' : 'Power rating for balance testing'}">
                     </div>
                 </div>
-                <input type="text" class="skill-requires" placeholder="Required skills" value="${skill.requires ? skill.requires.join(', ') : ''}">
+                <input type="text" class="skill-requires" placeholder="${isOOP ? 'Required methods or dependencies' : 'Required skills'}" value="${skill.requires ? skill.requires.join(', ') : ''}">
                 <textarea class="skill-description" placeholder="Description" rows="2">${skill.description ? Utils.escapeHtml(skill.description) : ''}</textarea>
                 <button type="button" class="btn-icon-small remove-item">✕</button>
             </div>
         `).join('');
     },
     
-    renderFormulaInputs(formulas) {
+    renderFormulaInputs(formulas, isOOP = false) {
+        const nameLabel = isOOP ? 'Property name (e.g., fullName)' : 'Stat name (e.g., Max HP)';
+        const expressionLabel = isOOP ? 'Expression (e.g., firstName + " " + lastName)' : 'Formula (e.g., strength * 10 + level * 5)';
+        
         if (!formulas || formulas.length === 0) {
             return `
                 <div class="formula-input">
-                    <input type="text" class="formula-name" placeholder="Stat name (e.g., Max HP)" value="">
-                    <input type="text" class="formula-expression" placeholder="Formula (e.g., strength * 10 + level * 5)" value="">
+                    <input type="text" class="formula-name" placeholder="${nameLabel}" value="">
+                    <input type="text" class="formula-expression" placeholder="${expressionLabel}" value="">
                     <button type="button" class="btn-icon-small remove-item">✕</button>
                 </div>
             `;
         }
         return formulas.map(formula => `
             <div class="formula-input">
-                <input type="text" class="formula-name" placeholder="Stat name" value="${Utils.escapeHtml(formula.name)}">
-                <input type="text" class="formula-expression" placeholder="Formula" value="${Utils.escapeHtml(formula.expression)}">
+                <input type="text" class="formula-name" placeholder="${isOOP ? 'Property name' : 'Stat name'}" value="${Utils.escapeHtml(formula.name)}">
+                <input type="text" class="formula-expression" placeholder="${isOOP ? 'Expression' : 'Formula'}" value="${Utils.escapeHtml(formula.expression)}">
                 <button type="button" class="btn-icon-small remove-item">✕</button>
             </div>
         `).join('');
@@ -4115,7 +4272,7 @@ const ClassesManager = {
                         <div class="form-group">
                             <label>Base Attributes</label>
                             <div id="attributesList" class="attributes-grid">
-                                ${this.renderAttributeInputs(isEdit ? classToEdit.attributes : null)}
+                                ${this.renderAttributeInputs(isEdit ? classToEdit.attributes : null, isEdit ? classToEdit.classType === 'instance' : false)}
                             </div>
                             <button type="button" class="btn btn-small btn-secondary" id="addAttributeBtn">+ Add Attribute</button>
                         </div>
@@ -4125,7 +4282,7 @@ const ClassesManager = {
                         <div class="form-group">
                             <label>Skills & Abilities</label>
                             <div id="skillsList">
-                                ${this.renderSkillInputs(isEdit ? classToEdit.skills : null)}
+                                ${this.renderSkillInputs(isEdit ? classToEdit.skills : null, isEdit ? classToEdit.classType === 'instance' : false)}
                             </div>
                             <button type="button" class="btn btn-small btn-secondary" id="addSkillBtn">+ Add Skill</button>
                         </div>
@@ -4136,7 +4293,7 @@ const ClassesManager = {
                             <label>Derived Stats Formulas</label>
                             <small class="form-hint">Use attribute names in formulas (e.g., strength * 10 + level * 5)</small>
                             <div id="formulasList">
-                                ${this.renderFormulaInputs(isEdit ? classToEdit.formulas : null)}
+                                ${this.renderFormulaInputs(isEdit ? classToEdit.formulas : null, isEdit ? classToEdit.classType === 'instance' : false)}
                             </div>
                             <button type="button" class="btn btn-small btn-secondary" id="addFormulaBtn">+ Add Formula</button>
                         </div>
@@ -4145,7 +4302,7 @@ const ClassesManager = {
                     <div class="class-tab-content" id="propertiesTab">
                         <div class="form-group">
                             <label for="classProperties">Custom Properties (one per line)</label>
-                            <textarea id="classProperties" rows="5" placeholder="health: 100&#10;speed: 5.0&#10;name: string">${isEdit && classToEdit.properties ? classToEdit.properties.join('\n') : ''}</textarea>
+                            <textarea id="classProperties" rows="5" placeholder="maxInstances: 100&#10;DEFAULT_SPEED: 5.0&#10;typeName: string">${isEdit && classToEdit.properties ? classToEdit.properties.join('\n') : ''}</textarea>
                             <small class="form-hint">Format: propertyName: value or propertyName: type</small>
                         </div>
                     </div>
@@ -4172,6 +4329,17 @@ const ClassesManager = {
             document.getElementById('classParent').value = classToEdit.parentId;
         }
         
+        // Class type change listener for dynamic field switching
+        document.getElementById('classType').addEventListener('change', (e) => {
+            this.updateTabsForClassType(e.target.value === 'instance');
+        });
+        
+        // Initialize tabs based on current class type after DOM is ready
+        requestAnimationFrame(() => {
+            const initialClassType = document.getElementById('classType').value;
+            this.updateTabsForClassType(initialClassType === 'instance');
+        });
+        
         // Tab switching
         document.querySelectorAll('.class-tab').forEach(tab => {
             tab.addEventListener('click', () => {
@@ -4185,11 +4353,12 @@ const ClassesManager = {
         // Add attribute button
         document.getElementById('addAttributeBtn').addEventListener('click', () => {
             const attributesList = document.getElementById('attributesList');
+            const isOOP = document.getElementById('classType').value === 'instance';
             const newAttr = document.createElement('div');
             newAttr.className = 'attribute-input';
             newAttr.innerHTML = `
-                <input type="text" class="attr-name" placeholder="Attribute name (e.g., Strength)" value="">
-                <input type="number" class="attr-value" placeholder="Base value" value="10">
+                <input type="text" class="attr-name" placeholder="${isOOP ? 'Field name (e.g., position, velocity)' : 'Attribute name (e.g., Strength)'}" value="">
+                <input type="${isOOP ? 'text' : 'number'}" class="attr-value" placeholder="${isOOP ? 'Default value' : 'Base value'}" value="${isOOP ? '' : '10'}">
                 <button type="button" class="btn-icon-small remove-item">✕</button>
             `;
             attributesList.appendChild(newAttr);
@@ -4198,24 +4367,25 @@ const ClassesManager = {
         // Add skill button
         document.getElementById('addSkillBtn').addEventListener('click', () => {
             const skillsList = document.getElementById('skillsList');
+            const isOOP = document.getElementById('classType').value === 'instance';
             const newSkill = document.createElement('div');
             newSkill.className = 'skill-input';
             newSkill.innerHTML = `
                 <div class="skill-input-row">
                     <div class="skill-field">
-                        <label class="skill-field-label">Skill Name</label>
-                        <input type="text" class="skill-name" placeholder="Skill name" value="">
+                        <label class="skill-field-label">${isOOP ? 'Method Name' : 'Skill Name'}</label>
+                        <input type="text" class="skill-name" placeholder="${isOOP ? 'Method name' : 'Skill name'}" value="">
                     </div>
                     <div class="skill-field">
-                        <label class="skill-field-label">Unlock Level</label>
-                        <input type="number" class="skill-level" placeholder="Level" value="1" min="1">
+                        <label class="skill-field-label">${isOOP ? 'Parameters' : 'Unlock Level'}</label>
+                        <input type="${isOOP ? 'text' : 'number'}" class="skill-level" placeholder="${isOOP ? 'x, y, z' : 'Level'}" value="${isOOP ? '' : '1'}" ${!isOOP ? 'min="1"' : ''} title="${isOOP ? 'Method parameters' : 'Unlock level'}">
                     </div>
                     <div class="skill-field">
-                        <label class="skill-field-label">Power Value</label>
-                        <input type="number" class="skill-power" placeholder="Power" value="10" min="0" step="1">
+                        <label class="skill-field-label">${isOOP ? 'Return Type' : 'Power Value'}</label>
+                        <input type="${isOOP ? 'text' : 'number'}" class="skill-power" placeholder="${isOOP ? 'void, string, etc.' : 'Power'}" value="${isOOP ? 'void' : '10'}" ${!isOOP ? 'min="0" step="1"' : ''} title="${isOOP ? 'Return type' : 'Power value'}">
                     </div>
                 </div>
-                <input type="text" class="skill-requires" placeholder="Required skills (comma-separated)" value="">
+                <input type="text" class="skill-requires" placeholder="${isOOP ? 'Required methods or dependencies' : 'Required skills (comma-separated)'}" value="">
                 <textarea class="skill-description" placeholder="Description" rows="2"></textarea>
                 <button type="button" class="btn-icon-small remove-item">✕</button>
             `;
@@ -4225,11 +4395,12 @@ const ClassesManager = {
         // Add formula button
         document.getElementById('addFormulaBtn').addEventListener('click', () => {
             const formulasList = document.getElementById('formulasList');
+            const isOOP = document.getElementById('classType').value === 'instance';
             const newFormula = document.createElement('div');
             newFormula.className = 'formula-input';
             newFormula.innerHTML = `
-                <input type="text" class="formula-name" placeholder="Stat name (e.g., Max HP)" value="">
-                <input type="text" class="formula-expression" placeholder="Formula (e.g., strength * 10)" value="">
+                <input type="text" class="formula-name" placeholder="${isOOP ? 'Property name (e.g., fullName)' : 'Stat name (e.g., Max HP)'}" value="">
+                <input type="text" class="formula-expression" placeholder="${isOOP ? 'Expression (e.g., firstName + \" \" + lastName)' : 'Formula (e.g., strength * 10)'}" value="">
                 <button type="button" class="btn-icon-small remove-item">✕</button>
             `;
             formulasList.appendChild(newFormula);
@@ -5337,26 +5508,26 @@ const MechanicsManager = {
                 
                 <div class="form-group">
                     <label for="mechanicDependencies">Dependencies (other mechanics this relies on)</label>
-                    <select id="mechanicDependencies" multiple size="6">
+                    <div id="mechanicDependencies" class="dependencies-checkbox-list">
                         ${(() => {
                             const availableMechanics = AppState.mechanics.filter(m => !isEdit || m.id !== mechanicToEdit?.id);
                             
                             if (availableMechanics.length === 0) {
-                                return '<option disabled>No other mechanics available</option>';
+                                return '<p class="empty-state-small">No other mechanics available</p>';
                             }
                             
                             // Group by category
                             const categories = {
-                                movement: { label: '🏃 Movement', items: [] },
-                                combat: { label: '⚔️ Combat', items: [] },
-                                ui: { label: '🎨 UI/UX', items: [] },
-                                gameplay: { label: '🎮 Gameplay', items: [] },
-                                ai: { label: '🤖 AI', items: [] },
-                                physics: { label: '⚙️ Physics', items: [] },
-                                networking: { label: '🌐 Networking', items: [] },
-                                audio: { label: '🔊 Audio', items: [] },
-                                graphics: { label: '🖼️ Graphics', items: [] },
-                                other: { label: '📦 Other', items: [] }
+                                movement: { label: 'Movement', icon: 'movement.svg', items: [] },
+                                combat: { label: 'Combat', icon: 'combat.svg', items: [] },
+                                ui: { label: 'UI/UX', icon: 'ui.svg', items: [] },
+                                gameplay: { label: 'Gameplay', icon: 'gameplay.svg', items: [] },
+                                ai: { label: 'AI', icon: 'ai.svg', items: [] },
+                                physics: { label: 'Physics', icon: 'physics.svg', items: [] },
+                                networking: { label: 'Networking', icon: 'network.svg', items: [] },
+                                audio: { label: 'Audio', icon: 'audio-wave.svg', items: [] },
+                                graphics: { label: 'Graphics', icon: 'ui.svg', items: [] },
+                                other: { label: 'Other', icon: 'package.svg', items: [] }
                             };
                             
                             availableMechanics.forEach(m => {
@@ -5367,20 +5538,26 @@ const MechanicsManager = {
                             let html = '';
                             Object.entries(categories).forEach(([key, cat]) => {
                                 if (cat.items.length > 0) {
-                                    html += `<optgroup label="${cat.label}">`;
+                                    html += `<div class="dependency-category">
+                                        <div class="dependency-category-header">
+                                            <img src="icons/misc/${cat.icon}" alt="" width="14" height="14" style="vertical-align: middle;">
+                                            ${cat.label}
+                                        </div>`;
                                     cat.items.forEach(m => {
-                                        html += `<option value="${m.id}" ${isEdit && mechanicToEdit.dependencies?.includes(m.id) ? 'selected' : ''}>
-                                            ${Utils.escapeHtml(m.name)}
-                                        </option>`;
+                                        const isChecked = isEdit && mechanicToEdit.dependencies?.includes(m.id);
+                                        html += `<label class="dependency-item">
+                                            <input type="checkbox" name="dependency" value="${m.id}" ${isChecked ? 'checked' : ''}>
+                                            <span>${Utils.escapeHtml(m.name)}</span>
+                                        </label>`;
                                     });
-                                    html += '</optgroup>';
+                                    html += `</div>`;
                                 }
                             });
                             
                             return html;
                         })()}
-                    </select>
-                    <small class="form-hint">Hold Ctrl/Cmd to select multiple. Mechanics grouped by category for easier selection.</small>
+                    </div>
+                    <small class="form-hint">Select mechanics that this mechanic depends on. Mechanics grouped by category.</small>
                 </div>
                 
                 <div class="form-group">
@@ -5486,8 +5663,8 @@ const MechanicsManager = {
                 .map(c => c.trim())
                 .filter(c => c);
             
-            const dependencies = Array.from(document.getElementById('mechanicDependencies').selectedOptions)
-                .map(option => option.value);
+            const dependencies = Array.from(document.querySelectorAll('#mechanicDependencies input[name="dependency"]:checked'))
+                .map(checkbox => checkbox.value);
             
             // Collect related items
             const relatedItems = [];
@@ -5753,16 +5930,16 @@ const MechanicsManager = {
         });
         
         const categoryNames = {
-            movement: '🏃 Movement',
+            movement: '<img src="icons/misc/movement.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Movement',
             combat: '<img src="icons/misc/combat.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Combat',
             ui: '<img src="icons/misc/ui.svg" alt="" width="14" height="14" style="vertical-align: middle;"> UI/UX',
-            gameplay: '🎮 Gameplay',
-            ai: '🤖 AI',
+            gameplay: '<img src="icons/misc/gameplay.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Gameplay',
+            ai: '<img src="icons/misc/ai.svg" alt="" width="14" height="14" style="vertical-align: middle;"> AI',
             physics: '<img src="icons/misc/physics.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Physics',
-            networking: '🌐 Networking',
-            audio: '🔊 Audio',
-            graphics: '🎨 Graphics',
-            other: '📦 Other'
+            networking: '<img src="icons/misc/network.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Networking',
+            audio: '<img src="icons/misc/audio-wave.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Audio',
+            graphics: '<img src="icons/misc/ui.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Graphics',
+            other: '<img src="icons/misc/package.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Other'
         };
         
         const priorityLabels = {

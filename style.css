@@ -492,6 +492,13 @@ img.stat-icon {
     background-color: var(--bg-tertiary);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
+    min-height: 38px;
+    line-height: 1.5;
+}
+
+.btn span {
+    display: inline-block;
+    line-height: inherit;
 }
 
 .btn:hover {
@@ -2060,6 +2067,33 @@ img.stat-icon {
         font-size: 1.5rem;
     }
     
+    /* Ensure all section-header-actions buttons have consistent behavior */
+    .section-header-actions {
+        width: 100%;
+    }
+    
+    /* Hide button text on small screens, keep icons */
+    .section-header-actions .btn span {
+        display: none;
+    }
+    
+    .section-header-actions .btn {
+        padding: 0.625rem;
+        min-width: 38px;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    
+    /* Hide text nodes directly in buttons (for Compare Classes, Balance Test) */
+    .section-header-actions .btn {
+        font-size: 0;
+    }
+    
+    .section-header-actions .btn span,
+    .section-header-actions .btn img {
+        font-size: 0.875rem;
+    }
+    
     .dashboard-grid {
         grid-template-columns: 1fr;
     }
@@ -3224,6 +3258,62 @@ input[type="file"]:focus {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+}
+
+/* Dependencies checkbox list styling */
+.dependencies-checkbox-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.5rem;
+    background: var(--bg-primary);
+}
+
+.dependency-category {
+    margin-bottom: 0.75rem;
+}
+
+.dependency-category:last-child {
+    margin-bottom: 0;
+}
+
+.dependency-category-header {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    padding: 0.5rem;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    margin-bottom: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dependency-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.dependency-item:hover {
+    background: var(--bg-tertiary);
+}
+
+.dependency-item input[type="checkbox"] {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+}
+
+.dependency-item span {
+    flex: 1;
 }
 
 .mechanic-card:hover {
@@ -8029,6 +8119,7 @@ html {
     display: flex;
     gap: 0.5rem;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 .bulk-actions-panel {

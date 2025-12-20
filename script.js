@@ -624,11 +624,12 @@ const Utils = {
             if (e.outgoing && e.incoming) dirIcon = '↔';
             else if (e.outgoing) dirIcon = '→';
             else if (e.incoming) dirIcon = '←';
+            // Icon is already safe HTML (img tag), don't escape it
+            const iconHtml = e.item.icon || '';
             return `
                 <div class="related-item-chip" onclick="RelationshipManager.navigateToItem('${e.item.id}', '${e.item.type}')">
-                    <span class="chip-icon">${e.item.icon || ''}</span>
                     <span class="chip-name">${this.escapeHtml(e.item.name)} ${dirIcon ? `<span class="chip-dir">${dirIcon}</span>` : ''}</span>
-                    <span class="chip-type">${this.escapeHtml(e.item.category)}</span>
+                    <span class="chip-type">${iconHtml}<span>${this.escapeHtml(e.item.category)}</span></span>
                 </div>
             `;
         }).join('');
@@ -1129,7 +1130,7 @@ const RelationshipManager = {
                 type: 'act',
                 name: act.title,
                 category: 'Story Act',
-                icon: '<img src="icons/story/story.svg" alt="" width="14" height="14" style="vertical-align: middle;">',
+                icon: '<img src="icons/story/act.svg" alt="" width="14" height="14" style="vertical-align: middle;">',
                 section: 'story',
                 data: normalizedAct
             });
@@ -1178,7 +1179,7 @@ const RelationshipManager = {
                     type: 'scene',
                     name: scene.title,
                     category: `Act ${act.actNumber} Scene`,
-                    icon: '<img src="icons/story/story.svg" alt="" width="14" height="14" style="vertical-align: middle;">',
+                    icon: '<img src="icons/story/scene.svg" alt="" width="14" height="14" style="vertical-align: middle;">',
                     section: 'story',
                     data: normalizedScene,
                     actId: act.id,
@@ -1285,12 +1286,24 @@ const RelationshipManager = {
         // Assets
         if (AppState.assets) {
             AppState.assets.forEach(asset => {
+                // Map asset types to their corresponding icons
+                const assetIconMap = {
+                    image: 'asset/sprite',
+                    audio: 'asset/audio',
+                    video: 'asset/video',
+                    model: 'asset/model',
+                    document: 'asset/file',
+                    script: 'asset/file',
+                    other: 'misc/package'
+                };
+                const iconPath = assetIconMap[asset.type] || 'misc/package';
+                
                 items.push({
                     id: asset.id,
                     type: 'asset',
                     name: asset.name,
                     category: `${asset.type.charAt(0).toUpperCase() + asset.type.slice(1)} Asset`,
-                    icon: '<img src="icons/asset/asset.svg" alt="" width="14" height="14" style="vertical-align: middle;">',
+                    icon: `<img src="icons/${iconPath}.svg" alt="" width="14" height="14" style="vertical-align: middle;">`,
                     section: 'assets',
                     data: asset
                 });
@@ -1421,13 +1434,16 @@ const RelationshipManager = {
             note: '📝 Notes',
             class: '<img src="icons/misc/user.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Classes',
             mechanic: '<img src="icons/navigation/mechanics.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Mechanics',
-            act: '<img src="icons/story/story.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Acts',
-            scene: '<img src="icons/story/story.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Scenes',
+            act: '<img src="icons/story/act.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Acts',
+            scene: '<img src="icons/story/scene.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Scenes',
             character: '<img src="icons/misc/user.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Characters',
             location: '<img src="icons/story/location.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Locations',
             timeline: '<img src="icons/misc/calendar.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Timeline',
             conflict: '<img src="icons/misc/combat.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Conflicts',
-            theme: '<img src="icons/misc/thought-bubble.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Themes'
+            theme: '<img src="icons/misc/thought-bubble.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Themes',
+            item: '<img src="icons/misc/package.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Items',
+            quest: '<img src="icons/misc/gameplay.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Quests',
+            asset: '<img src="icons/asset/file.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Assets'
         };
         
         Object.entries(grouped).forEach(([type, items]) => {
@@ -3497,7 +3513,7 @@ const AssetTracker = {
             model: Utils.icon('asset/model', 'large'),
             document: Utils.icon('asset/file', 'large'),
             script: Utils.icon('asset/file', 'large'),
-            other: Utils.icon('asset/file', 'large')
+            other: Utils.icon('misc/package', 'large')
         };
         
         container.innerHTML = assetsToShow.map(asset => {

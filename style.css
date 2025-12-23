@@ -1715,7 +1715,7 @@ img.stat-icon {
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: 2000;
     padding: 1rem;
 }
 
@@ -6432,6 +6432,32 @@ html {
     pointer-events: none;
 }
 
+.modal-overlay.active ~ .utility-toolbox,
+.modal-overlay.active ~ #utilityToolbox {
+    display: none !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+}
+
+.utility-toolbox.hidden,
+#utilityToolbox.hidden {
+    display: none !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+.utility-toolbox.hidden *,
+#utilityToolbox.hidden * {
+    pointer-events: none !important;
+}
+
+/* Block all interactions when modal is open */
+.modal-overlay.active ~ .utility-toolbox *,
+.modal-overlay.active ~ #utilityToolbox * {
+    pointer-events: none !important;
+}
+
 .utility-toggle-btn {
     width: 60px;
     height: 60px;
@@ -6447,6 +6473,12 @@ html {
     position: relative;
     overflow: hidden;
     pointer-events: all;
+}
+
+.modal-overlay.active ~ .utility-toolbox .utility-toggle-btn,
+.modal-overlay.active ~ #utilityToolbox .utility-toggle-btn {
+    pointer-events: none !important;
+    cursor: default !important;
 }
 
 .utility-toggle-btn:hover {
@@ -6477,6 +6509,12 @@ html {
     transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
+/* Ensure buttons are not clickable when toolbox is closed */
+.utility-tools:not(.active) .utility-tool-btn {
+    pointer-events: none !important;
+    cursor: default !important;
+}
+
 .utility-tools.active {
     opacity: 1;
     transform: translateY(0);
@@ -6495,7 +6533,18 @@ html {
     transition: all 0.2s ease;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     white-space: nowrap;
+    pointer-events: none;
+}
+
+/* Only enable pointer events when utility tools is active */
+.utility-tools.active .utility-tool-btn {
     pointer-events: all;
+}
+
+.modal-overlay.active ~ .utility-toolbox .utility-tool-btn,
+.modal-overlay.active ~ #utilityToolbox .utility-tool-btn {
+    pointer-events: none !important;
+    cursor: default !important;
 }
 
 .utility-tool-btn:hover {

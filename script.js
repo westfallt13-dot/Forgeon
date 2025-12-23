@@ -2038,6 +2038,24 @@ const Modal = {
         this.overlay.classList.add('active');
         this.overlay.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
+        
+        // Hide utility toolbox while modal is open
+        const utilityToolbox = document.getElementById('utilityToolbox');
+        if (utilityToolbox) {
+            utilityToolbox.classList.add('hidden');
+            utilityToolbox.style.display = 'none';
+            utilityToolbox.style.pointerEvents = 'none';
+        }
+        
+        // Force close utility tools if they're open
+        const utilityTools = document.getElementById('utilityTools');
+        const utilityToggleBtn = document.getElementById('utilityToggleBtn');
+        if (utilityTools) {
+            utilityTools.classList.remove('active');
+        }
+        if (utilityToggleBtn) {
+            utilityToggleBtn.classList.remove('active');
+        }
     },
     
     close() {
@@ -2053,6 +2071,14 @@ const Modal = {
         document.body.style.overflow = '';
         document.body.style.pointerEvents = '';
         this.body.innerHTML = '';
+        
+        // Show utility toolbox again when modal closes
+        const utilityToolbox = document.getElementById('utilityToolbox');
+        if (utilityToolbox) {
+            utilityToolbox.classList.remove('hidden');
+            utilityToolbox.style.display = '';
+            utilityToolbox.style.pointerEvents = '';
+        }
     },
     
     // Emergency cleanup function to force-close modal if it gets stuck
@@ -2068,6 +2094,15 @@ const Modal = {
             }
             document.body.style.overflow = '';
             document.body.style.pointerEvents = '';
+            
+            // Show utility toolbox again when force closing
+            const utilityToolbox = document.getElementById('utilityToolbox');
+            if (utilityToolbox) {
+                utilityToolbox.classList.remove('hidden');
+                utilityToolbox.style.display = '';
+                utilityToolbox.style.pointerEvents = '';
+            }
+            
             console.log('Modal force-closed');
         } catch (e) {
             console.error('Error force-closing modal:', e);
@@ -4744,9 +4779,9 @@ const ClassesManager = {
                             ${classObj.description ? `<div class="class-description">${Utils.escapeHtml(classObj.description)}</div>` : ''}
                         </div>
                         <div class="class-actions">
-                            <button class="btn btn-small btn-accent" onclick="ClassesManager.openClassProgressionEditor(AppState.classes.find(c => c.id === '${classObj.id}'))"><img src="icons/misc/progress.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Progression</button>
+                            ${classObj.classType === 'character' ? `<button class="btn btn-small btn-accent" onclick="ClassesManager.openClassProgressionEditor(AppState.classes.find(c => c.id === '${classObj.id}'))"><img src="icons/misc/progress.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Progression</button>` : ''}
                             <button class="btn btn-small btn-secondary" onclick="ClassesManager.openAddModal(AppState.classes.find(c => c.id === '${classObj.id}'))">Edit</button>
-                            <button class="btn btn-small btn-secondary" onclick="TemplateManager.saveAsTemplate(AppState.classes.find(c => c.id === '${classObj.id}'), 'class')" title="Save as reusable template"><img src="icons/actions/save.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Template</button>
+                            ${classObj.classType === 'character' ? `<button class="btn btn-small btn-secondary" onclick="TemplateManager.saveAsTemplate(AppState.classes.find(c => c.id === '${classObj.id}'), 'class')" title="Save as reusable template"><img src="icons/actions/save.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Template</button>` : ''}
                             <button class="btn btn-small btn-danger" onclick="ClassesManager.deleteClass('${classObj.id}')">Delete</button>
                         </div>
                     </div>
@@ -5065,6 +5100,25 @@ const ClassesManager = {
                 
                 classObj.levelProgression.push(levelData);
             }
+            
+            // Auto-fill abilities based on skill unlock levels
+            if (classObj.skills && classObj.skills.length > 0) {
+                classObj.skills.forEach(skill => {
+                    if (skill.unlockLevel && skill.unlockLevel >= 1) {
+                        const levelData = classObj.levelProgression.find(l => l.level === skill.unlockLevel);
+                        if (levelData) {
+                            // Add skill to abilities, avoiding duplicates
+                            const abilities = levelData.abilities 
+                                ? levelData.abilities.split(',').map(s => s.trim()).filter(s => s)
+                                : [];
+                            if (!abilities.includes(skill.name)) {
+                                abilities.push(skill.name);
+                            }
+                            levelData.abilities = abilities.join(', ');
+                        }
+                    }
+                });
+            }
         }
         
         const modalHTML = `
@@ -5076,6 +5130,7 @@ const ClassesManager = {
                 
                 <div class="spreadsheet-controls">
                     <button class="btn btn-secondary" id="addProgressionLevelBtn">+ Add Level Row</button>
+                    <button class="btn btn-secondary" id="autoFillAbilitiesBtn"><img src="icons/actions/refresh.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Auto-fill Abilities</button>
                     <button class="btn btn-primary" id="saveClassProgressionBtn"><img src="icons/actions/save.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Save Changes</button>
                     <button class="btn btn-accent" id="exportClassProgressionBtn"><img src="icons/actions/download.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Export CSV</button>
                 </div>
@@ -5171,6 +5226,38 @@ const ClassesManager = {
             alert('Class progression saved successfully!');
             Modal.close();
             this.render();
+        });
+        
+        // Auto-fill abilities based on skill unlock levels
+        document.getElementById('autoFillAbilitiesBtn').addEventListener('click', () => {
+            if (!classObj.skills || classObj.skills.length === 0) {
+                alert('This class has no skills defined. Add skills first in the class editor.');
+                return;
+            }
+            
+            // Clear existing abilities first
+            classObj.levelProgression.forEach(levelData => {
+                levelData.abilities = '';
+            });
+            
+            // Fill in abilities based on skill unlock levels
+            classObj.skills.forEach(skill => {
+                if (skill.unlockLevel && skill.unlockLevel >= 1) {
+                    const levelData = classObj.levelProgression.find(l => l.level === skill.unlockLevel);
+                    if (levelData) {
+                        const abilities = levelData.abilities 
+                            ? levelData.abilities.split(',').map(s => s.trim()).filter(s => s)
+                            : [];
+                        if (!abilities.includes(skill.name)) {
+                            abilities.push(skill.name);
+                        }
+                        levelData.abilities = abilities.join(', ');
+                    }
+                }
+            });
+            
+            // Refresh the table to show updated abilities
+            this.openClassProgressionEditor(classObj);
         });
         
         // Export CSV
@@ -6151,7 +6238,7 @@ const MechanicsManager = {
                             
                             ${mechanic.implementation ? `
                                 <details class="mechanic-implementation">
-                                    <summary>💻 Implementation Notes</summary>
+                                    <summary><img src="icons/misc/computer.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Implementation Notes</summary>
                                     <pre>${Utils.escapeHtml(mechanic.implementation)}</pre>
                                 </details>
                             ` : ''}
@@ -6532,6 +6619,11 @@ const NotesManager = {
         `;
         
         Modal.open(formHtml);
+        
+        // Initialize drawing canvas if editing a drawing note
+        if (isEdit && noteToEdit.drawing) {
+            setTimeout(() => this.initDrawingCanvas(noteToEdit), 100);
+        }
         
         // Auto-resize textarea
         const textarea = document.getElementById('noteContent');
@@ -8955,7 +9047,7 @@ const StoryManager = {
                                         <input type="checkbox" value="${asset.id}" 
                                                ${isEdit && characterToEdit.assetIds && characterToEdit.assetIds.includes(asset.id) ? 'checked' : ''}>
                                         <span>
-                                            ${asset.type === 'audio' ? '🔊' : asset.type === 'image' ? '🖼️' : asset.type === 'video' ? '🎬' : asset.type === 'model' ? '🎨' : '📄'}
+                                            <img src="icons/asset/${asset.type === 'audio' ? 'audio' : asset.type === 'image' ? 'sprite' : asset.type === 'video' ? 'video' : asset.type === 'model' ? 'model' : 'file'}.svg" alt="" width="14" height="14" style="vertical-align: middle;">
                                             ${Utils.escapeHtml(asset.name)}
                                             <small>(${asset.type})</small>
                                         </span>
@@ -9659,7 +9751,7 @@ const StoryManager = {
                     <div class="linked-assets">
                         <strong>Assets:</strong> 
                         ${linkedAssets.map(a => `
-                            ${a.type === 'audio' ? '🔊' : a.type === 'image' ? '🖼️' : a.type === 'video' ? '🎬' : a.type === 'model' ? '🎨' : '📄'}
+                            <img src="icons/asset/${a.type === 'audio' ? 'audio' : a.type === 'image' ? 'sprite' : a.type === 'video' ? 'video' : a.type === 'model' ? 'model' : 'file'}.svg" alt="" width="12" height="12" style="vertical-align: middle;">
                         `).join(' ')}
                         <span class="asset-count">${linkedAssets.length}</span>
                     </div>
@@ -9729,7 +9821,7 @@ const StoryManager = {
                                     <input type="checkbox" value="${asset.id}" 
                                            ${isEdit && locationToEdit.assetIds && locationToEdit.assetIds.includes(asset.id) ? 'checked' : ''}>
                                     <span>
-                                        ${asset.type === 'audio' ? '🔊' : asset.type === 'image' ? '🖼️' : asset.type === 'video' ? '🎬' : asset.type === 'model' ? '🎨' : '📄'}
+                                        <img src="icons/asset/${asset.type === 'audio' ? 'audio' : asset.type === 'image' ? 'sprite' : asset.type === 'video' ? 'video' : asset.type === 'model' ? 'model' : 'file'}.svg" alt="" width="14" height="14" style="vertical-align: middle;">
                                         ${Utils.escapeHtml(asset.name)}
                                         <small>(${asset.type})</small>
                                     </span>
@@ -9956,7 +10048,7 @@ const StoryManager = {
                     <div class="linked-assets">
                         <strong>Assets:</strong> 
                         ${linkedAssets.map(a => `
-                            ${a.type === 'audio' ? '🔊' : a.type === 'image' ? '🖼️' : a.type === 'video' ? '🎬' : a.type === 'model' ? '🎨' : '📄'}
+                            <img src="icons/asset/${a.type === 'audio' ? 'audio' : a.type === 'image' ? 'sprite' : a.type === 'video' ? 'video' : a.type === 'model' ? 'model' : 'file'}.svg" alt="" width="12" height="12" style="vertical-align: middle;">
                         `).join(' ')}
                         <span class="asset-count">${linkedAssets.length}</span>
                     </div>
@@ -11456,8 +11548,8 @@ const QuestManager = {
                 ${quest.rewards && (quest.rewards.experience > 0 || quest.rewards.currency > 0) ? `
                     <div class="quest-rewards">
                         <span class="reward-label">Rewards:</span>
-                        ${quest.rewards.experience > 0 ? `<span class="reward-item">✨ ${quest.rewards.experience} XP</span>` : ''}
-                        ${quest.rewards.currency > 0 ? `<span class="reward-item">💰 ${quest.rewards.currency}</span>` : ''}
+                        ${quest.rewards.experience > 0 ? `<span class="reward-item"><img src="icons/misc/star.svg" alt="" width="12" height="12" style="vertical-align: middle;"> ${quest.rewards.experience} XP</span>` : ''}
+                        ${quest.rewards.currency > 0 ? `<span class="reward-item"><img src="icons/misc/sparkles.svg" alt="" width="12" height="12" style="vertical-align: middle;"> ${quest.rewards.currency}</span>` : ''}
                     </div>
                 ` : ''}
                 
@@ -15146,7 +15238,7 @@ const DocumentationExporter = {
                         ${mechanic.category ? `<span class="meta-item"><span class="meta-label">Category:</span> <span class="badge badge-type">${this.escape(mechanic.category)}</span></span>` : ''}
                     </div>
                     ${mechanic.description ? `<div class="description">${this.escape(mechanic.description)}</div>` : ''}
-                    ${mechanic.implementation ? `<div class="relationships"><h5>💻 Implementation</h5><div>${this.escape(mechanic.implementation)}</div></div>` : ''}
+                    ${mechanic.implementation ? `<div class="relationships"><h5><img src="icons/misc/computer.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Implementation</h5><div>${this.escape(mechanic.implementation)}</div></div>` : ''}
                     ${this.generateRelationships(mechanic.id, 'mechanic')}
                 </div>
             `;
@@ -15388,14 +15480,30 @@ const UtilityToolbox = {
         const addVariableBtn = document.getElementById('addVariableBtn');
         
         // Toggle toolbox
-        toggleBtn.addEventListener('click', () => {
+        toggleBtn.addEventListener('click', (e) => {
+            // Don't allow opening if a modal is active
+            const modalActive = document.getElementById('modalOverlay')?.classList.contains('active');
+            if (modalActive) {
+                e.stopPropagation();
+                e.preventDefault();
+                return;
+            }
+            
             this.isOpen = !this.isOpen;
             tools.classList.toggle('active', this.isOpen);
             toggleBtn.classList.toggle('active', this.isOpen);
         });
         
         // Open calculator
-        calculatorBtn.addEventListener('click', () => {
+        calculatorBtn.addEventListener('click', (e) => {
+            // Don't allow opening if a modal is active
+            const modalActive = document.getElementById('modalOverlay')?.classList.contains('active');
+            if (modalActive) {
+                e.stopPropagation();
+                e.preventDefault();
+                return;
+            }
+            
             this.openCalculator();
         });
         
@@ -16867,7 +16975,17 @@ const QuickNotes = {
         const saveBtn = document.getElementById('saveQuickNoteBtn');
         const cancelBtn = document.getElementById('cancelQuickNoteBtn');
         
-        quickNotesBtn.addEventListener('click', () => this.open());
+        quickNotesBtn.addEventListener('click', (e) => {
+            // Don't allow opening if a modal is active
+            const modalActive = document.getElementById('modalOverlay')?.classList.contains('active');
+            if (modalActive) {
+                e.stopPropagation();
+                e.preventDefault();
+                return;
+            }
+            
+            this.open();
+        });
         closeBtn.addEventListener('click', () => this.close());
         searchInput.addEventListener('input', (e) => this.filterNotes(e.target.value));
         createBtn.addEventListener('click', () => this.showEditor());

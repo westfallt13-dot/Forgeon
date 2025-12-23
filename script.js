@@ -2562,8 +2562,14 @@ const Dashboard = {
         
         upcoming.forEach(milestone => {
             const li = document.createElement('li');
-            const daysUntil = Math.ceil((new Date(milestone.dueDate) - new Date()) / (1000 * 60 * 60 * 24));
-            const daysText = daysUntil > 0 ? `${daysUntil} days` : `${Math.abs(daysUntil)} days overdue`;
+            // Compare dates at midnight for accurate day counting
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            // Parse date string as local date to avoid timezone issues
+            const [year, month, day] = milestone.dueDate.split('-').map(Number);
+            const dueDate = new Date(year, month - 1, day);
+            const daysUntil = Math.round((dueDate - today) / (1000 * 60 * 60 * 24));
+            const daysText = daysUntil > 0 ? `${daysUntil} days` : daysUntil === 0 ? 'due today' : `${Math.abs(daysUntil)} days overdue`;
             li.innerHTML = `${Utils.icon('navigation/milestones', 'small')} ${Utils.escapeHtml(milestone.title)} <span style="opacity: 0.7; font-size: 0.9em;">(${milestone.progress}% - ${daysText})</span>`;
             li.style.cursor = 'pointer';
             li.onclick = () => {
@@ -4738,7 +4744,7 @@ const ClassesManager = {
                             ${classObj.description ? `<div class="class-description">${Utils.escapeHtml(classObj.description)}</div>` : ''}
                         </div>
                         <div class="class-actions">
-                            <button class="btn btn-small btn-accent" onclick="ClassesManager.openClassProgressionEditor(AppState.classes.find(c => c.id === '${classObj.id}'))"><img src="icons/misc/chart.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Progression</button>
+                            <button class="btn btn-small btn-accent" onclick="ClassesManager.openClassProgressionEditor(AppState.classes.find(c => c.id === '${classObj.id}'))"><img src="icons/misc/progress.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Progression</button>
                             <button class="btn btn-small btn-secondary" onclick="ClassesManager.openAddModal(AppState.classes.find(c => c.id === '${classObj.id}'))">Edit</button>
                             <button class="btn btn-small btn-secondary" onclick="TemplateManager.saveAsTemplate(AppState.classes.find(c => c.id === '${classObj.id}'), 'class')" title="Save as reusable template"><img src="icons/actions/save.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Template</button>
                             <button class="btn btn-small btn-danger" onclick="ClassesManager.deleteClass('${classObj.id}')">Delete</button>
@@ -4747,7 +4753,7 @@ const ClassesManager = {
                     <div class="class-details">
                         ${classObj.attributes && classObj.attributes.length > 0 ? `
                             <div class="class-section">
-                                <strong><img src="icons/misc/chart.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Attributes:</strong>
+                                <strong><img src="icons/misc/progress.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Attributes:</strong>
                                 <div class="attributes-display">
                                     ${classObj.attributes.map(attr => `
                                         <span class="attribute-badge">${Utils.escapeHtml(attr.name)}: ${attr.value}</span>
@@ -5064,12 +5070,12 @@ const ClassesManager = {
         const modalHTML = `
             <div class="class-progression-editor">
                 <div class="spreadsheet-header">
-                    <h2><img src="icons/misc/chart.svg" alt="" width="16" height="16" style="vertical-align: middle;"> ${Utils.escapeHtml(classObj.name)} - Level Progression</h2>
+                    <h2><img src="icons/misc/progress.svg" alt="" width="16" height="16" style="vertical-align: middle;"> ${Utils.escapeHtml(classObj.name)} - Level Progression</h2>
                     <p>Define attributes and abilities for each level</p>
                 </div>
                 
                 <div class="spreadsheet-controls">
-                    <button class="btn btn-secondary" id="addProgressionAttrBtn">+ Add Attribute Column</button>
+                    <button class="btn btn-secondary" id="addProgressionLevelBtn">+ Add Level Row</button>
                     <button class="btn btn-primary" id="saveClassProgressionBtn"><img src="icons/actions/save.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Save Changes</button>
                     <button class="btn btn-accent" id="exportClassProgressionBtn"><img src="icons/actions/download.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Export CSV</button>
                 </div>
@@ -5113,23 +5119,28 @@ const ClassesManager = {
         
         Modal.open(modalHTML);
         
-        // Add attribute column
-        document.getElementById('addProgressionAttrBtn').addEventListener('click', () => {
-            const attrName = prompt('Enter attribute name:');
-            if (!attrName || attrName.trim() === '') return;
+        // Add level row
+        document.getElementById('addProgressionLevelBtn').addEventListener('click', () => {
+            // Find the highest level
+            const maxLevel = Math.max(...classObj.levelProgression.map(l => l.level));
+            const newLevel = maxLevel + 1;
             
-            const trimmedName = attrName.trim();
+            // Create new level data with same attributes as existing levels
+            const newLevelData = {
+                level: newLevel,
+                attributes: {},
+                abilities: ''
+            };
             
-            // Check if attribute already exists
-            if (classObj.levelProgression[0].attributes[trimmedName] !== undefined) {
-                alert('Attribute already exists!');
-                return;
+            // Initialize attributes from first level structure
+            if (classObj.levelProgression.length > 0) {
+                Object.keys(classObj.levelProgression[0].attributes).forEach(attrName => {
+                    newLevelData.attributes[attrName] = 0;
+                });
             }
             
-            // Add attribute to all levels
-            classObj.levelProgression.forEach(levelData => {
-                levelData.attributes[trimmedName] = 0;
-            });
+            // Add new level to progression
+            classObj.levelProgression.push(newLevelData);
             
             // Refresh the table
             this.openClassProgressionEditor(classObj);
@@ -14175,26 +14186,51 @@ const DataManager = {
             zip.file('project-data.json', JSON.stringify(metadata, null, 2));
             
             // Add all uploaded files from IndexedDB
-            const assetsWithFiles = AppState.assets.filter(a => a.hasFile);
+            // Count all files (both legacy single-file and modern multi-file assets)
+            let totalFiles = 0;
+            const allFiles = [];
             
-            if (assetsWithFiles.length > 0) {
-                loadingNotif.textContent = `Exporting ${assetsWithFiles.length} files...`;
+            for (const asset of AppState.assets) {
+                // Modern multi-file format
+                if (asset.files && asset.files.length > 0) {
+                    for (const fileInfo of asset.files) {
+                        allFiles.push({
+                            fileId: fileInfo.id,
+                            fileName: fileInfo.fileName,
+                            assetId: asset.id
+                        });
+                        totalFiles++;
+                    }
+                }
+                // Legacy single-file format
+                else if (asset.hasFile) {
+                    allFiles.push({
+                        fileId: asset.id,
+                        fileName: asset.fileName,
+                        assetId: asset.id
+                    });
+                    totalFiles++;
+                }
+            }
+            
+            if (totalFiles > 0) {
+                loadingNotif.textContent = `Exporting ${totalFiles} files...`;
                 
                 const filesFolder = zip.folder('files');
                 
-                for (let i = 0; i < assetsWithFiles.length; i++) {
-                    const asset = assetsWithFiles[i];
-                    loadingNotif.textContent = `Exporting file ${i + 1}/${assetsWithFiles.length}...`;
+                for (let i = 0; i < allFiles.length; i++) {
+                    const fileInfo = allFiles[i];
+                    loadingNotif.textContent = `Exporting file ${i + 1}/${totalFiles}...`;
                     
                     try {
-                        const fileData = await FileStorage.getFile(asset.id);
+                        const fileData = await FileStorage.getFile(fileInfo.fileId);
                         if (fileData && fileData.file) {
-                            // Store file with asset ID as filename to maintain reference
-                            const extension = fileData.fileName.split('.').pop();
-                            filesFolder.file(`${asset.id}.${extension}`, fileData.file);
+                            // Store file with file ID as filename to maintain reference
+                            const extension = fileInfo.fileName.split('.').pop();
+                            filesFolder.file(`${fileInfo.fileId}.${extension}`, fileData.file);
                         }
                     } catch (error) {
-                        console.error(`Error exporting file for asset ${asset.id}:`, error);
+                        console.error(`Error exporting file ${fileInfo.fileId}:`, error);
                     }
                 }
             }
@@ -14225,7 +14261,7 @@ const DataManager = {
             loadingNotif.remove();
             
             // Show success
-            NotesManager.showNotification(`✅ Export complete! (${assetsWithFiles.length} files included)`);
+            NotesManager.showNotification(`✅ Export complete! (${totalFiles} files included)`);
             
         } catch (error) {
             console.error('Export error:', error);
@@ -14265,7 +14301,14 @@ const DataManager = {
             }
             
             // Confirm with user
-            const assetsWithFiles = data.assets.filter(a => a.hasFile).length;
+            const totalFilesCount = data.assets.reduce((count, asset) => {
+                if (asset.files && asset.files.length > 0) {
+                    return count + asset.files.length;
+                } else if (asset.hasFile) {
+                    return count + 1;
+                }
+                return count;
+            }, 0);
             const classesCount = (data.classes || []).length;
             const mechanicsCount = (data.mechanics || []).length;
             const notesCount = (data.notes && Array.isArray(data.notes)) ? data.notes.length : 0;
@@ -14285,7 +14328,7 @@ const DataManager = {
             const confirmMessage = `⚠️ This will replace all current data.\n\n` +
                 `Import contains:\n` +
                 `• ${data.tasks.length} tasks\n` +
-                `• ${data.assets.length} assets (${assetsWithFiles} with files)\n` +
+                `• ${data.assets.length} assets (${totalFilesCount} files)\n` +
                 `  ${assetTypesList ? '  → ' + assetTypesList : ''}\n` +
                 `• ${data.milestones.length} milestones\n` +
                 `• ${notesCount} notes\n` +
@@ -14299,7 +14342,18 @@ const DataManager = {
                 // Clear existing files from IndexedDB
                 loadingNotif.textContent = 'Clearing old files...';
                 for (const asset of AppState.assets) {
-                    if (asset.hasFile) {
+                    // Modern multi-file format
+                    if (asset.files && asset.files.length > 0) {
+                        for (const fileInfo of asset.files) {
+                            try {
+                                await FileStorage.deleteFile(fileInfo.id);
+                            } catch (error) {
+                                console.error('Error deleting old file:', error);
+                            }
+                        }
+                    }
+                    // Legacy single-file format
+                    else if (asset.hasFile) {
                         try {
                             await FileStorage.deleteFile(asset.id);
                         } catch (error) {
@@ -14334,25 +14388,58 @@ const DataManager = {
                         loadingNotif.textContent = `Importing file ${i + 1}/${fileEntries.length}...`;
                         
                         try {
-                            // Extract asset ID from filename (e.g., "abc123.png" -> "abc123")
-                            const assetId = entry.relativePath.split('.')[0];
-                            const asset = AppState.assets.find(a => a.id === assetId);
+                            // Extract file ID from filename (e.g., "abc123.png" -> "abc123")
+                            const fileId = entry.relativePath.split('.')[0];
                             
-                            if (asset && asset.hasFile) {
+                            // Find which asset this file belongs to
+                            let targetAsset = null;
+                            let fileInfo = null;
+                            
+                            // Check modern multi-file format
+                            for (const asset of AppState.assets) {
+                                if (asset.files && asset.files.length > 0) {
+                                    fileInfo = asset.files.find(f => f.id === fileId);
+                                    if (fileInfo) {
+                                        targetAsset = asset;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            // Check legacy single-file format
+                            if (!targetAsset) {
+                                targetAsset = AppState.assets.find(a => a.id === fileId && a.hasFile);
+                                if (targetAsset) {
+                                    fileInfo = {
+                                        id: fileId,
+                                        fileName: targetAsset.fileName,
+                                        fileType: targetAsset.fileType
+                                    };
+                                }
+                            }
+                            
+                            if (targetAsset && fileInfo) {
                                 // Get file blob from ZIP
                                 const blob = await entry.file.async('blob');
                                 
                                 // Create File object with proper name and type
-                                const restoredFile = new File([blob], asset.fileName, { 
-                                    type: asset.fileType 
+                                const restoredFile = new File([blob], fileInfo.fileName, { 
+                                    type: fileInfo.fileType 
                                 });
                                 
                                 // Save to IndexedDB
-                                await FileStorage.saveFile(assetId, restoredFile);
+                                await FileStorage.saveFile(fileId, restoredFile);
                                 
-                                // Regenerate thumbnail if it's an image
-                                if (asset.fileType && asset.fileType.startsWith('image/')) {
-                                    asset.thumbnail = await FileStorage.createThumbnail(restoredFile);
+                                // Regenerate thumbnail if it's an image (for multi-file assets)
+                                if (fileInfo.fileType && fileInfo.fileType.startsWith('image/') && targetAsset.files) {
+                                    const fileIndex = targetAsset.files.findIndex(f => f.id === fileId);
+                                    if (fileIndex !== -1) {
+                                        targetAsset.files[fileIndex].thumbnail = await FileStorage.createThumbnail(restoredFile);
+                                    }
+                                }
+                                // Regenerate thumbnail for legacy single-file format
+                                else if (fileInfo.fileType && fileInfo.fileType.startsWith('image/') && targetAsset.hasFile) {
+                                    targetAsset.thumbnail = await FileStorage.createThumbnail(restoredFile);
                                 }
                                 
                                 filesImported++;
@@ -16928,7 +17015,7 @@ const QuickNotes = {
         this.hideEditor();
         this.refreshNotesList();
         
-        AIAssistant.showToast('✅ Note saved successfully!');
+        Utils.showToast('✅ Note saved successfully!');
     },
     
     goToNotesTab() {
@@ -16936,2206 +17023,6 @@ const QuickNotes = {
         Navigation.switchSection('notes');
     }
 };
-
-// ============================================
-// AI Assistant
-// ============================================
-const AIAssistant = {
-    isOpen: false,
-    chatHistory: [],
-    isProcessing: false,
-    config: {
-        mode: null, // 'local', 'api', 'remote'
-        local: {
-            modelPath: null,
-            contextLength: 512,
-            temperature: 0.7
-        },
-        api: {
-            provider: 'openai',
-            endpoint: null,
-            apiKey: null,
-            model: 'gpt-4',
-            temperature: 0.7,
-            maxTokens: 2000
-        },
-        remote: {
-            serverUrl: null,
-            endpointPath: '/v1/chat/completions',
-            requiresAuth: false,
-            authType: 'bearer',
-            authToken: null,
-            requestFormat: 'openai'
-        }
-    },
-    localModel: null,
-    
-    init() {
-        const assistantBtn = document.getElementById('aiAssistantBtn');
-        const closeBtn = document.getElementById('aiCloseBtn');
-        const sendBtn = document.getElementById('aiSendBtn');
-        const input = document.getElementById('aiInput');
-        const clearBtn = document.getElementById('aiClearHistoryBtn');
-        const settingsBtn = document.getElementById('aiSettingsBtn');
-        
-        // Initialize resize functionality
-        this.initResize();
-        
-        // Open AI Assistant
-        assistantBtn.addEventListener('click', () => {
-            this.open();
-        });
-        
-        // Close AI Assistant
-        closeBtn.addEventListener('click', () => {
-            this.close();
-        });
-        
-        // Open Settings
-        settingsBtn.addEventListener('click', () => {
-            this.openSettings();
-        });
-        
-        // Send message
-        sendBtn.addEventListener('click', () => {
-            this.sendMessage();
-        });
-        
-        // Send on Enter (Shift+Enter for newline)
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                this.sendMessage();
-            }
-        });
-        
-        // Ensure input is always focusable - brute force fix
-        input.addEventListener('mousedown', (e) => {
-            // Force enable the input on any mouse interaction
-            input.disabled = false;
-            input.readOnly = false;
-            input.style.pointerEvents = 'auto';
-        });
-        
-        input.addEventListener('click', (e) => {
-            // Force enable and focus on click
-            input.disabled = false;
-            input.readOnly = false;
-            input.style.pointerEvents = 'auto';
-            setTimeout(() => input.focus(), 0);
-        });
-        
-        // Clear history
-        clearBtn.addEventListener('click', () => {
-            Utils.showConfirm('Are you sure you want to clear the entire conversation history? This cannot be undone.', () => {
-                this.clearHistory();
-            });
-        });
-        
-        // Initialize settings modal
-        this.initSettings();
-        
-        // Load config and chat history
-        this.loadConfig();
-        this.loadHistory();
-        this.updateStatus();
-    },
-    
-    open() {
-        this.isOpen = true;
-        document.getElementById('aiAssistantPanel').classList.add('active');
-        
-        // Hide welcome message if there are messages
-        if (this.chatHistory.length > 0) {
-            const welcome = document.querySelector('.ai-welcome-message');
-            if (welcome) welcome.style.display = 'none';
-        }
-        
-        // Focus input
-        setTimeout(() => {
-            document.getElementById('aiInput').focus();
-        }, 100);
-    },
-    
-    close() {
-        this.isOpen = false;
-        document.getElementById('aiAssistantPanel').classList.remove('active');
-    },
-    
-    initResize() {
-        const panel = document.getElementById('aiAssistantPanel');
-        const resizeHandleLeft = document.getElementById('aiResizeHandleLeft');
-        const resizeHandleTop = document.getElementById('aiResizeHandleTop');
-        
-        let isResizing = false;
-        let resizeType = null; // 'width' or 'height'
-        let startX = 0;
-        let startY = 0;
-        let startWidth = 0;
-        let startHeight = 0;
-        let startBottom = 0;
-
-        // Left edge resize (width only)
-        resizeHandleLeft.addEventListener('mousedown', (e) => {
-            isResizing = true;
-            resizeType = 'width';
-            startX = e.clientX;
-            startWidth = panel.offsetWidth;
-            resizeHandleLeft.classList.add('active');
-            document.body.style.cursor = 'ew-resize';
-            e.preventDefault();
-            e.stopPropagation();
-        });
-
-        // Top edge resize (height only)
-        resizeHandleTop.addEventListener('mousedown', (e) => {
-            isResizing = true;
-            resizeType = 'height';
-            startY = e.clientY;
-            startHeight = panel.offsetHeight;
-            const computedStyle = window.getComputedStyle(panel);
-            startBottom = parseInt(computedStyle.bottom);
-            resizeHandleTop.classList.add('active');
-            document.body.style.cursor = 'ns-resize';
-            e.preventDefault();
-            e.stopPropagation();
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (!isResizing) return;
-            
-            if (resizeType === 'width') {
-                // Width only (left edge)
-                const deltaX = startX - e.clientX;
-                // Calculate max width: distance from right edge (1.5rem = 24px) to left edge of window
-                const maxWidth = window.innerWidth - 24 - 24; // 24px right margin + 24px safety margin on left
-                const newWidth = Math.max(350, Math.min(maxWidth, startWidth + deltaX));
-                panel.style.width = `${newWidth}px`;
-            } else if (resizeType === 'height') {
-                // Height only (top edge) - adjust by moving bottom up
-                const deltaY = e.clientY - startY;
-                const maxHeight = window.innerHeight * 0.8; // 80vh in pixels
-                const newHeight = Math.max(400, Math.min(maxHeight, startHeight - deltaY));
-                
-                panel.style.height = `${newHeight}px`;
-                panel.style.maxHeight = `${newHeight}px`;
-            }
-        });
-
-        document.addEventListener('mouseup', () => {
-            if (isResizing) {
-                isResizing = false;
-                resizeType = null;
-                resizeHandleLeft.classList.remove('active');
-                resizeHandleTop.classList.remove('active');
-                document.body.style.cursor = '';
-            }
-        });
-    },
-    
-    async sendMessage(retryMessage = null) {
-        const input = document.getElementById('aiInput');
-        const message = retryMessage || input.value.trim();
-        
-        if (!message || this.isProcessing) return;
-        
-        // Add user message (only if not retrying)
-        if (!retryMessage) {
-            this.addMessage('user', message);
-            input.value = '';
-        }
-        
-        // Hide welcome message
-        const welcome = document.querySelector('.ai-welcome-message');
-        if (welcome) welcome.style.display = 'none';
-        
-        // Show thinking indicator
-        this.setStatus('thinking', 'Thinking...');
-        this.isProcessing = true;
-        document.getElementById('aiSendBtn').disabled = true;
-        
-        try {
-            // Get AI response
-            const response = await this.getAIResponse(message);
-            
-            // For streaming responses, message was already added by streaming
-            // Only add if not streaming or if response has content not yet displayed
-            if (!this.streamingSetup || !response) {
-                this.addMessage('assistant', response);
-            } else {
-                // Update chat history with the complete response
-                const timestamp = new Date();
-                const msg = { role: 'assistant', content: response, timestamp: timestamp.toISOString() };
-                this.chatHistory.push(msg);
-                this.saveHistory();
-            }
-            
-            this.setStatus('ready', this.getStatusText());
-        } catch (error) {
-            console.error('AI Error:', error);
-            // Add error message with retry button
-            this.addErrorMessage(error, message);
-            this.setStatus('error', 'Error');
-        } finally {
-            this.isProcessing = false;
-            document.getElementById('aiSendBtn').disabled = false;
-        }
-    },
-    
-    addMessage(role, content) {
-        const timestamp = new Date();
-        const message = { role, content, timestamp: timestamp.toISOString() };
-        
-        this.chatHistory.push(message);
-        this.saveHistory();
-        this.renderMessage(message);
-        
-        // Scroll to bottom
-        const container = document.getElementById('aiChatContainer');
-        setTimeout(() => {
-            container.scrollTop = container.scrollHeight;
-        }, 100);
-    },
-    
-    addErrorMessage(error, originalMessage) {
-        const messagesContainer = document.getElementById('aiMessages');
-        const messageEl = document.createElement('div');
-        messageEl.className = 'ai-message assistant error-message';
-        
-        const timestamp = new Date();
-        const timeStr = timestamp.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        
-        // Parse error message to provide helpful guidance
-        let errorDetails = error.message;
-        let helpText = '';
-        
-        if (error.message.includes('insufficient_quota') || error.message.includes('insufficient funds')) {
-            helpText = '<img src="icons/misc/lightbulb.svg" alt="" width="14" height="14" style="vertical-align: middle;"> <strong>Suggestion:</strong> Add credits to your OpenAI account or check your billing settings.';
-        } else if (error.message.includes('invalid_api_key') || error.message.includes('Incorrect API key')) {
-            helpText = '<img src="icons/misc/lightbulb.svg" alt="" width="14" height="14" style="vertical-align: middle;"> <strong>Suggestion:</strong> Check that your API key is correct in the settings.';
-        } else if (error.message.includes('rate_limit')) {
-            helpText = '<img src="icons/misc/lightbulb.svg" alt="" width="14" height="14" style="vertical-align: middle;"> <strong>Suggestion:</strong> You\'re sending requests too quickly. Wait a moment and try again.';
-        } else if (error.message.includes('Not Configured')) {
-            helpText = '<img src="icons/misc/lightbulb.svg" alt="" width="14" height="14" style="vertical-align: middle;"> <strong>Suggestion:</strong> Click the <img src="icons/navigation/mechanics.svg" alt="" width="14" height="14" style="vertical-align: middle;"> settings button to configure your AI connection.';
-        } else if (error.message.includes('network') || error.message.includes('fetch')) {
-            helpText = '<img src="icons/misc/lightbulb.svg" alt="" width="14" height="14" style="vertical-align: middle;"> <strong>Suggestion:</strong> Check your internet connection.';
-        }
-        
-        messageEl.innerHTML = `
-            <div class="message-avatar assistant">
-                <img src="icons/status/error.svg" alt="error" width="24" height="24">
-            </div>
-            <div class="message-content error-content">
-                <div class="error-header">
-                    <strong><img src="icons/status/warning.svg" alt="" width="16" height="16" style="vertical-align: middle;"> Error Occurred</strong>
-                </div>
-                <div class="error-details">
-                    ${this.formatMessage(errorDetails)}
-                </div>
-                ${helpText ? `<div class="error-help">${helpText}</div>` : ''}
-                <div class="error-actions">
-                    <button class="retry-btn" onclick="AIAssistant.retryMessage('${this.escapeForAttribute(originalMessage)}')">
-                        <img src="icons/actions/refresh.svg" alt="" width="16" height="16" style="vertical-align: middle;"> <span>Retry Message</span>
-                    </button>
-                </div>
-                <span class="message-time">${timeStr}</span>
-            </div>
-        `;
-        
-        messagesContainer.appendChild(messageEl);
-        
-        // Scroll to bottom
-        const container = document.getElementById('aiChatContainer');
-        setTimeout(() => {
-            container.scrollTop = container.scrollHeight;
-        }, 100);
-    },
-    
-    escapeForAttribute(text) {
-        return text
-            .replace(/\\/g, '\\\\')
-            .replace(/'/g, "\\'")
-            .replace(/"/g, '&quot;')
-            .replace(/\n/g, '\\n');
-    },
-    
-    retryMessage(message) {
-        // Unescape the message
-        const unescaped = message.replace(/\\n/g, '\n').replace(/\\'/g, "'");
-        this.sendMessage(unescaped);
-    },
-    
-    getStatusText() {
-        if (!this.config.mode) return 'Not Configured';
-        const modes = {
-            'local': '<img src="icons/misc/computer.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Local Model',
-            'api': '<img src="icons/misc/key.svg" alt="" width="14" height="14" style="vertical-align: middle;"> API Connected',
-            'remote': '<img src="icons/misc/globe.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Remote Server'
-        };
-        return modes[this.config.mode] || 'Ready';
-    },
-    
-    renderMessage(message) {
-        const messagesContainer = document.getElementById('aiMessages');
-        const messageEl = document.createElement('div');
-        messageEl.className = `ai-message ${message.role}`;
-        
-        const timestamp = new Date(message.timestamp);
-        const timeStr = timestamp.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        
-        messageEl.innerHTML = `
-            <div class="message-avatar ${message.role}">
-                <img src="icons/misc/${message.role === 'user' ? 'profile' : 'ai'}.svg" alt="${message.role}" width="24" height="24">
-            </div>
-            <div class="message-content">
-                <div class="message-text">${this.formatMessage(message.content)}</div>
-                <span class="message-time">${timeStr}</span>
-            </div>
-        `;
-        
-        messagesContainer.appendChild(messageEl);
-    },
-    
-    formatMessage(text) {
-        // Escape HTML and preserve line breaks
-        return text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/\n/g, '<br>');
-    },
-    
-    setStatus(state, text) {
-        const indicator = document.getElementById('aiStatusIndicator');
-        const dot = indicator.querySelector('.status-dot');
-        const statusText = indicator.querySelector('.status-text');
-        
-        dot.className = 'status-dot';
-        if (state !== 'ready') {
-            dot.classList.add(state);
-        }
-        statusText.innerHTML = text;
-    },
-    
-    async getAIResponse(userMessage) {
-        // Check if AI is configured
-        if (!this.config.mode) {
-            throw new Error('AI is not configured. Please click the settings (<img src="icons/navigation/mechanics.svg" alt="" width="14" height="14" style="vertical-align: middle;">) button to configure your AI connection.');
-        }
-        
-        // Build context about the entire project
-        const context = this.buildContext();
-        
-        // Route to appropriate AI handler
-        switch (this.config.mode) {
-            case 'local':
-                return await this.getLocalResponse(userMessage, context);
-            case 'api':
-                return await this.getAPIResponse(userMessage, context);
-            case 'remote':
-                return await this.getRemoteResponse(userMessage, context);
-            default:
-                return this.simulateAIResponse(userMessage, context);
-        }
-    },
-    
-    async getLocalResponse(userMessage, context) {
-        if (!isElectron) {
-            throw new Error('Local GGUF models are only supported in the desktop application.');
-        }
-        
-        const config = this.config.local;
-        
-        try {
-            // Check if model is loaded
-            const isLoaded = await window.electronAPI.isModelLoaded();
-            
-            // Load model if needed
-            if (!isLoaded) {
-                if (!config.modelPath || config.modelPath === 'default') {
-                    throw new Error('Please select a GGUF model in AI settings.');
-                }
-                
-                // Show loading indicator
-                this.showModelLoadingIndicator('Loading model...');
-                
-                try {
-                    await window.electronAPI.loadModel(config.modelPath, {
-                        contextLength: config.contextLength
-                    });
-                    this.hideModelLoadingIndicator();
-                } catch (loadError) {
-                    this.hideModelLoadingIndicator();
-                    throw new Error(`Failed to load model: ${loadError.message}`);
-                }
-            }
-            
-            // Build a very simple, direct prompt for GGUF models
-            // Use instruction format to prevent echoing
-            let contextInfo = '';
-            
-            // Add minimal context only if relevant to the question
-            const lowerMsg = userMessage.toLowerCase();
-            
-            if (lowerMsg.includes('scene')) {
-                const scenes = context.story.scenes.items;
-                if (scenes.length > 0) {
-                    contextInfo += 'Scenes:\n';
-                    scenes.forEach(s => {
-                        contextInfo += `- "${s.sceneTitle}" in ${s.actTitle}\n`;
-                    });
-                } else {
-                    contextInfo += 'No scenes created yet.\n';
-                }
-            } else if (lowerMsg.includes('character')) {
-                const chars = context.story.characters.items;
-                if (chars.length > 0) {
-                    contextInfo += 'Characters: ' + chars.map(c => `${c.name} (${c.role})`).join(', ') + '\n';
-                }
-            } else if (lowerMsg.includes('act')) {
-                const acts = context.story.acts.items;
-                if (acts.length > 0) {
-                    contextInfo += 'Acts:\n';
-                    acts.forEach(a => {
-                        contextInfo += `- ${a.title} (${a.scenes.length} scenes)\n`;
-                    });
-                }
-            }
-            
-            // Build simple instruction-following prompt
-            const prompt = `### Instruction:\nAnswer this question about a game design project: ${userMessage}\n\n${contextInfo ? '### Context:\n' + contextInfo + '\n' : ''}### Response:`;
-            
-            // Generate response with streaming
-            this.setupGenerationStreaming();
-            
-            const result = await window.electronAPI.generateText(prompt, {
-                temperature: config.temperature,
-                maxTokens: 256,
-                threads: 4
-            });
-            
-            if (!result.success) {
-                throw new Error('Generation failed');
-            }
-            
-            return result.text;
-            
-        } catch (error) {
-            console.error('Local inference error:', error);
-            throw error;
-        }
-    },
-    
-    showModelLoadingIndicator(message) {
-        const chatPanel = document.querySelector('.ai-chat-container');
-        let indicator = document.getElementById('modelLoadingIndicator');
-        
-        if (!indicator) {
-            indicator = document.createElement('div');
-            indicator.id = 'modelLoadingIndicator';
-            indicator.style.cssText = `
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: rgba(0, 0, 0, 0.9);
-                padding: 2rem;
-                border-radius: 8px;
-                text-align: center;
-                z-index: 1000;
-                color: white;
-                pointer-events: none;
-            `;
-            chatPanel.style.position = 'relative';
-            chatPanel.appendChild(indicator);
-        }
-        
-        indicator.innerHTML = `
-            <div style="font-size: 1.2rem; margin-bottom: 1rem;">${message}</div>
-            <div style="font-size: 0.9rem; opacity: 0.7;">This may take a minute...</div>
-        `;
-        indicator.style.display = 'block';
-    },
-    
-    hideModelLoadingIndicator() {
-        const indicator = document.getElementById('modelLoadingIndicator');
-        if (indicator) {
-            indicator.style.display = 'none';
-        }
-    },
-    
-    setupGenerationStreaming() {
-        if (this.streamingSetup) return;
-        
-        if (isElectron && window.electronAPI.onGenerationProgress) {
-            window.electronAPI.onGenerationProgress((token) => {
-                // Find or create the assistant message being streamed
-                const messages = document.querySelectorAll('.ai-message');
-                let lastMessage = messages[messages.length - 1];
-                
-                // If last message is not assistant or doesn't exist, create one
-                if (!lastMessage || !lastMessage.classList.contains('assistant')) {
-                    const timestamp = new Date();
-                    const message = { 
-                        role: 'assistant', 
-                        content: '', 
-                        timestamp: timestamp.toISOString() 
-                    };
-                    this.renderMessage(message);
-                    lastMessage = document.querySelectorAll('.ai-message')[document.querySelectorAll('.ai-message').length - 1];
-                }
-                
-                // Append token to message text
-                const messageText = lastMessage.querySelector('.message-text');
-                if (messageText) {
-                    messageText.textContent += token;
-                    
-                    // Scroll to bottom
-                    const container = document.getElementById('aiChatContainer');
-                    container.scrollTop = container.scrollHeight;
-                }
-            });
-            this.streamingSetup = true;
-        }
-    },
-    
-    async getAPIResponse(userMessage, context) {
-        const config = this.config.api;
-        
-        // Build messages array with context
-        const messages = [
-            {
-                role: 'system',
-                content: `You are a helpful AI assistant integrated into a game design planning tool. You have full access to the user's project data and can provide insights, suggestions, and help with brainstorming. However, you cannot directly edit or modify the project data.
-
-Current Project Context:
-${JSON.stringify(context, null, 2)}`
-            },
-            ...this.chatHistory.slice(-10).map(msg => ({
-                role: msg.role === 'user' ? 'user' : 'assistant',
-                content: msg.content
-            })),
-            {
-                role: 'user',
-                content: userMessage
-            }
-        ];
-        
-        // Call appropriate API
-        if (config.provider === 'openai' || config.provider === 'custom') {
-            return await this.callOpenAIAPI(messages, config);
-        } else if (config.provider === 'anthropic') {
-            return await this.callAnthropicAPI(messages, config);
-        } else {
-            // Generic OpenAI-compatible API
-            return await this.callOpenAIAPI(messages, config);
-        }
-    },
-    
-    async callOpenAIAPI(messages, config) {
-        try {
-            const response = await fetch(config.endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${config.apiKey}`
-                },
-                body: JSON.stringify({
-                    model: config.model,
-                    messages: messages,
-                    temperature: config.temperature,
-                    max_tokens: config.maxTokens
-                })
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => null);
-                
-                // Extract detailed error information
-                let errorMessage = `API Error (${response.status})`;
-                
-                if (errorData) {
-                    // OpenAI error format
-                    if (errorData.error) {
-                        errorMessage = errorData.error.message || errorData.error.type || errorMessage;
-                        
-                        // Add error code if available
-                        if (errorData.error.code) {
-                            errorMessage = `[${errorData.error.code}] ${errorMessage}`;
-                        }
-                    } else if (errorData.message) {
-                        errorMessage = errorData.message;
-                    }
-                } else {
-                    errorMessage = `${response.status} ${response.statusText}`;
-                }
-                
-                throw new Error(errorMessage);
-            }
-            
-            const data = await response.json();
-            
-            if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-                throw new Error('Invalid response format from API');
-            }
-            
-            return data.choices[0].message.content;
-        } catch (error) {
-            // Enhance network errors
-            if (error.message.includes('fetch')) {
-                throw new Error('Network error: Unable to connect to API. Check your internet connection.');
-            }
-            throw error;
-        }
-    },
-    
-    async callAnthropicAPI(messages, config) {
-        // Extract system message
-        const systemMessage = messages.find(m => m.role === 'system');
-        const conversationMessages = messages.filter(m => m.role !== 'system');
-        
-        try {
-            const response = await fetch(config.endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': config.apiKey,
-                    'anthropic-version': '2023-06-01'
-                },
-                body: JSON.stringify({
-                    model: config.model,
-                    messages: conversationMessages,
-                    system: systemMessage?.content,
-                    temperature: config.temperature,
-                    max_tokens: config.maxTokens
-                })
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => null);
-                let errorMessage = `API Error (${response.status})`;
-                
-                if (errorData && errorData.error) {
-                    errorMessage = errorData.error.message || errorMessage;
-                }
-                
-                throw new Error(errorMessage);
-            }
-            
-            const data = await response.json();
-            
-            if (!data.content || !data.content[0] || !data.content[0].text) {
-                throw new Error('Invalid response format from Anthropic API');
-            }
-            
-            return data.content[0].text;
-        } catch (error) {
-            if (error.message.includes('fetch')) {
-                throw new Error('Network error: Unable to connect to Anthropic API. Check your internet connection.');
-            }
-            throw error;
-        }
-    },
-    
-    async getRemoteResponse(userMessage, context) {
-        const config = this.config.remote;
-        const fullUrl = config.serverUrl + config.endpointPath;
-        
-        // Build request based on format
-        let requestBody;
-        if (config.requestFormat === 'openai') {
-            requestBody = {
-                model: 'default',
-                messages: [
-                    {
-                        role: 'system',
-                        content: `You are a helpful AI assistant for game design. Project context: ${JSON.stringify(context)}`
-                    },
-                    ...this.chatHistory.slice(-10).map(msg => ({
-                        role: msg.role,
-                        content: msg.content
-                    })),
-                    {
-                        role: 'user',
-                        content: userMessage
-                    }
-                ]
-            };
-        } else if (config.requestFormat === 'ollama') {
-            requestBody = {
-                model: 'default',
-                prompt: userMessage,
-                system: `You are a helpful AI assistant for game design. Project context: ${JSON.stringify(context)}`
-            };
-        } else if (config.requestFormat === 'llamacpp') {
-            requestBody = {
-                prompt: `${JSON.stringify(context)}\n\n${userMessage}`,
-                temperature: 0.7,
-                n_predict: 2000
-            };
-        } else {
-            // Default to OpenAI format
-            requestBody = {
-                messages: [{ role: 'user', content: userMessage }]
-            };
-        }
-        
-        // Build headers
-        const headers = {
-            'Content-Type': 'application/json'
-        };
-        
-        if (config.requiresAuth) {
-            if (config.authType === 'bearer') {
-                headers['Authorization'] = `Bearer ${config.authToken}`;
-            } else if (config.authType === 'apikey') {
-                headers['X-API-Key'] = config.authToken;
-            } else if (config.authType === 'basic') {
-                headers['Authorization'] = `Basic ${btoa(config.authToken)}`;
-            }
-        }
-        
-        try {
-            const response = await fetch(fullUrl, {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify(requestBody)
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => null);
-                let errorMessage = `Remote Server Error (${response.status})`;
-                
-                if (errorData) {
-                    if (errorData.error) {
-                        errorMessage = typeof errorData.error === 'string' ? errorData.error : errorData.error.message || errorMessage;
-                    } else if (errorData.message) {
-                        errorMessage = errorData.message;
-                    } else if (errorData.detail) {
-                        errorMessage = errorData.detail;
-                    }
-                } else {
-                    errorMessage = `${response.status} ${response.statusText}`;
-                }
-                
-                throw new Error(errorMessage);
-            }
-            
-            const data = await response.json();
-            
-            // Extract response based on format
-            let responseText;
-            if (config.requestFormat === 'openai') {
-                responseText = data.choices?.[0]?.message?.content;
-            } else if (config.requestFormat === 'ollama') {
-                responseText = data.response;
-            } else if (config.requestFormat === 'llamacpp') {
-                responseText = data.content;
-            } else {
-                // Try to find response in common fields
-                responseText = data.response || data.content || data.text || data.message;
-            }
-            
-            if (!responseText) {
-                throw new Error('Unable to extract response from server. Check your request format setting.');
-            }
-            
-            return responseText;
-        } catch (error) {
-            if (error.message.includes('fetch') || error.message.includes('NetworkError')) {
-                throw new Error(`Network error: Unable to connect to ${config.serverUrl}. Check the server URL and your internet connection.`);
-            }
-            throw error;
-        }
-    },
-    
-    simulateAIResponse(message, context) {
-        // Simulated AI response for demonstration
-        // This will be replaced with actual API calls
-        
-        const lowerMsg = message.toLowerCase();
-        
-        // Check what the user is asking about
-        if (lowerMsg.includes('task') || lowerMsg.includes('todo')) {
-            const tasks = AppState.tasks;
-            if (tasks.length === 0) {
-                return "I see you don't have any tasks yet. Would you like me to help you brainstorm some tasks to get started with your game development?";
-            }
-            
-            const pending = tasks.filter(t => t.status !== 'Completed').length;
-            const completed = tasks.filter(t => t.status === 'Completed').length;
-            
-            return `You currently have ${tasks.length} tasks: ${completed} completed and ${pending} pending.\n\nThe high-priority tasks include: ${tasks.filter(t => t.priority === 'High').map(t => t.title).join(', ') || 'none'}.\n\nWould you like me to help you prioritize or suggest new tasks?`;
-        }
-        
-        if (lowerMsg.includes('class') || lowerMsg.includes('character class')) {
-            const classes = AppState.classes;
-            if (classes.length === 0) {
-                return "I notice you haven't created any character classes yet. What type of game are you making? I can help you brainstorm class ideas based on your game genre.";
-            }
-            
-            return `You have ${classes.length} character classes: ${classes.map(c => c.name).join(', ')}.\n\nEach class has unique attributes and skills. Would you like me to analyze the balance between them or suggest improvements?`;
-        }
-        
-        if (lowerMsg.includes('story') || lowerMsg.includes('narrative') || lowerMsg.includes('plot')) {
-            const chars = AppState.story.characters?.length || 0;
-            const locs = AppState.story.locations?.length || 0;
-            const acts = AppState.story.acts?.length || 0;
-            
-            if (chars === 0 && locs === 0 && acts === 0) {
-                return "Your story section is empty. Let's build your narrative! Start by telling me about your game's premise or the type of story you want to tell.";
-            }
-            
-            return `Your story has ${chars} characters, ${locs} locations, and ${acts} acts.\n\nWould you like me to help develop character arcs, suggest plot twists, or analyze the story structure?`;
-        }
-        
-        if (lowerMsg.includes('balance') || lowerMsg.includes('gameplay')) {
-            return "I'd be happy to help analyze game balance! Based on your classes, mechanics, and items, I can provide insights on:\n\n• Power progression curves\n• Class balance and synergies\n• Item stat distribution\n• Difficulty scaling\n\nWhat aspect would you like to focus on?";
-        }
-        
-        if (lowerMsg.includes('item')) {
-            const items = AppState.story.items?.length || 0;
-            if (items === 0) {
-                return "You haven't added any items yet. What type of items does your game need? Weapons, armor, consumables, or quest items?";
-            }
-            
-            return `You have ${items} items in your game. I can help you:\n\n• Design new items with balanced stats\n• Analyze item distribution across rarity tiers\n• Suggest item effects and abilities\n• Create item sets or collections\n\nWhat would you like to work on?`;
-        }
-        
-        // Generic helpful response
-        return `I'm here to help with your game design! I have access to all your project data:\n\n• ${AppState.tasks.length} tasks\n• ${AppState.classes.length} classes\n• ${AppState.mechanics.length} mechanics\n• ${AppState.story.characters?.length || 0} characters\n• ${AppState.story.items?.length || 0} items\n• And much more!\n\nFeel free to ask me about:\n\n<img src="icons/misc/lightbulb.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Brainstorming new ideas\n<img src="icons/misc/chart-line-up.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Analyzing game balance\n<img src="icons/misc/sparkles.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Developing story elements\n<img src="icons/misc/gameplay.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Prioritizing tasks\n🔍 Finding connections between elements\n\nWhat would you like to work on?`;
-    },
-    
-    buildContext() {
-        // Build a comprehensive context object with all project data
-        const currentProject = ProjectManager.getCurrentProject();
-        
-        // Get all scenes from all acts
-        const allScenes = [];
-        AppState.story.acts?.forEach(act => {
-            if (act.scenes && act.scenes.length > 0) {
-                act.scenes.forEach(scene => {
-                    allScenes.push({
-                        actTitle: act.title,
-                        sceneTitle: scene.title,
-                        description: scene.description
-                    });
-                });
-            }
-        });
-        
-        return {
-            projectName: currentProject?.name || AppState.notes?.find(n => n.category === 'Project')?.title || 'Untitled Game',
-            tasks: {
-                total: AppState.tasks.length,
-                completed: AppState.tasks.filter(t => t.status === 'Completed').length,
-                pending: AppState.tasks.filter(t => t.status !== 'Completed').length,
-                byPriority: {
-                    high: AppState.tasks.filter(t => t.priority === 'High').length,
-                    medium: AppState.tasks.filter(t => t.priority === 'Medium').length,
-                    low: AppState.tasks.filter(t => t.priority === 'Low').length
-                },
-                items: AppState.tasks.map(t => ({ id: t.id, title: t.title, status: t.status, priority: t.priority }))
-            },
-            assets: {
-                total: AppState.assets.length,
-                byType: this.groupByProperty(AppState.assets, 'type'),
-                items: AppState.assets.map(a => ({ id: a.id, name: a.name, type: a.type, status: a.status }))
-            },
-            classes: {
-                total: AppState.classes.length,
-                items: AppState.classes.map(c => ({
-                    id: c.id,
-                    name: c.name,
-                    attributes: c.attributes?.map(a => ({ name: a.name, base: a.baseValue })),
-                    skills: c.skills?.map(s => s.name)
-                }))
-            },
-            mechanics: {
-                total: AppState.mechanics.length,
-                byCategory: this.groupByProperty(AppState.mechanics, 'category'),
-                items: AppState.mechanics.map(m => ({ id: m.id, name: m.name, category: m.category }))
-            },
-            story: {
-                characters: {
-                    total: AppState.story.characters?.length || 0,
-                    items: AppState.story.characters?.map(c => ({ id: c.id, name: c.name, role: c.role })) || []
-                },
-                locations: {
-                    total: AppState.story.locations?.length || 0,
-                    items: AppState.story.locations?.map(l => ({ id: l.id, name: l.name, type: l.type })) || []
-                },
-                items: {
-                    total: AppState.story.items?.length || 0,
-                    byType: this.groupByProperty(AppState.story.items || [], 'type'),
-                    byRarity: this.groupByProperty(AppState.story.items || [], 'rarity'),
-                    items: AppState.story.items?.map(i => ({
-                        id: i.id,
-                        name: i.name,
-                        type: i.type,
-                        rarity: i.rarity,
-                        stats: i.stats
-                    })) || []
-                },
-                acts: {
-                    total: AppState.story.acts?.length || 0,
-                    items: AppState.story.acts?.map(a => ({
-                        id: a.id,
-                        title: a.title,
-                        scenes: a.scenes?.map(s => ({ title: s.title, description: s.description })) || []
-                    })) || []
-                },
-                scenes: {
-                    total: allScenes.length,
-                    items: allScenes
-                }
-            }
-        };
-    },
-    
-    groupByProperty(array, property) {
-        const grouped = {};
-        array.forEach(item => {
-            const key = item[property] || 'Other';
-            grouped[key] = (grouped[key] || 0) + 1;
-        });
-        return grouped;
-    },
-    
-    loadHistory() {
-        try {
-            const saved = localStorage.getItem(ProjectManager.getStorageKey('ai_chat_history'));
-            if (saved) {
-                this.chatHistory = JSON.parse(saved);
-                
-                // Render all messages
-                this.chatHistory.forEach(msg => this.renderMessage(msg));
-                
-                // Hide welcome if there are messages
-                if (this.chatHistory.length > 0) {
-                    const welcome = document.querySelector('.ai-welcome-message');
-                    if (welcome) welcome.style.display = 'none';
-                }
-            }
-        } catch (error) {
-            console.error('Error loading AI chat history:', error);
-        }
-    },
-    
-    saveHistory() {
-        try {
-            localStorage.setItem(ProjectManager.getStorageKey('ai_chat_history'), JSON.stringify(this.chatHistory));
-        } catch (error) {
-            console.error('Error saving AI chat history:', error);
-        }
-    },
-    
-    clearHistory() {
-        this.chatHistory = [];
-        localStorage.removeItem(ProjectManager.getStorageKey('ai_chat_history'));
-        
-        // Clear messages from UI
-        document.getElementById('aiMessages').innerHTML = '';
-        
-        // Show welcome message again
-        const welcome = document.querySelector('.ai-welcome-message');
-        if (welcome) welcome.style.display = 'block';
-        
-        this.updateStatus();
-    },
-    
-    // ============================================
-    // Settings Modal Management
-    // ============================================
-    
-    initSettings() {
-        const modal = document.getElementById('aiSettingsModal');
-        const closeBtn = document.getElementById('aiSettingsCloseBtn');
-        const cancelBtn = document.getElementById('cancelSettingsBtn');
-        const saveBtn = document.getElementById('saveSettingsBtn');
-        
-        // Mode selection
-        const modeRadios = document.querySelectorAll('input[name="aiMode"]');
-        modeRadios.forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                this.showModeSettings(e.target.value);
-            });
-        });
-        
-        // Close modal
-        closeBtn.addEventListener('click', () => this.closeSettings());
-        cancelBtn.addEventListener('click', () => this.closeSettings());
-        
-        // Save settings
-        saveBtn.addEventListener('click', () => this.saveSettings());
-        
-        // Click outside to close (prevent event bubbling)
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                e.stopPropagation();
-                this.closeSettings();
-            }
-        });
-        
-        // API provider change
-        document.getElementById('apiProvider').addEventListener('change', (e) => {
-            const customEndpoint = document.getElementById('customApiEndpoint');
-            customEndpoint.style.display = e.target.value === 'custom' ? 'block' : 'none';
-            
-            // Set default models
-            const modelInput = document.getElementById('apiModel');
-            const defaults = {
-                'openai': 'gpt-4',
-                'anthropic': 'claude-3-opus-20240229',
-                'cohere': 'command',
-                'google': 'gemini-pro',
-                'mistral': 'mistral-large-latest'
-            };
-            if (defaults[e.target.value]) {
-                modelInput.value = defaults[e.target.value];
-            }
-        });
-        
-        // Local model selection
-        document.getElementById('localModelSelect').addEventListener('change', (e) => {
-            const customUpload = document.getElementById('customModelUpload');
-            customUpload.style.display = e.target.value === 'custom' ? 'block' : 'none';
-        });
-        
-        // Open models folder button (Electron only)
-        const openModelsFolderBtn = document.getElementById('openModelsFolder');
-        if (isElectron && openModelsFolderBtn) {
-            openModelsFolderBtn.addEventListener('click', async () => {
-                try {
-                    await window.electronAPI.openModelsFolder();
-                } catch (error) {
-                    alert(`Error opening models folder: ${error.message}`);
-                }
-            });
-        } else if (openModelsFolderBtn) {
-            // Hide button in web mode
-            openModelsFolderBtn.style.display = 'none';
-        }
-        
-        // Unload model button (Electron only)
-        const unloadModelBtn = document.getElementById('unloadModelBtn');
-        if (isElectron && unloadModelBtn) {
-            unloadModelBtn.addEventListener('click', async () => {
-                try {
-                    await window.electronAPI.unloadModel();
-                    await this.updateModelStatus();
-                    alert('Model unloaded successfully. Memory has been freed.');
-                } catch (error) {
-                    alert(`Error unloading model: ${error.message}`);
-                }
-            });
-        }
-        
-        // GGUF file input - use Electron file picker if available
-        const ggufFileInput = document.getElementById('ggufFileInput');
-        if (isElectron) {
-            // Replace file input with button for Electron
-            const electronPickerBtn = document.createElement('button');
-            electronPickerBtn.type = 'button';
-            electronPickerBtn.className = 'btn btn-secondary btn-sm';
-            electronPickerBtn.innerHTML = '<span>📁 Select GGUF Model File</span>';
-            electronPickerBtn.style.width = '100%';
-            electronPickerBtn.style.marginTop = '0.5rem';
-            
-            let selectedGGUFFile = null;
-            
-            electronPickerBtn.addEventListener('click', async () => {
-                try {
-                    const fileInfo = await window.electronAPI.selectGGUFFile();
-                    if (fileInfo) {
-                        selectedGGUFFile = fileInfo;
-                        electronPickerBtn.innerHTML = `<span>✅ ${fileInfo.name} (${(fileInfo.size / 1024 / 1024).toFixed(2)} MB)</span>`;
-                        // Store file info in config
-                        this.config.local.modelFile = fileInfo;
-                    }
-                } catch (error) {
-                    alert(`Error selecting file: ${error.message}`);
-                }
-            });
-            
-            ggufFileInput.parentNode.insertBefore(electronPickerBtn, ggufFileInput);
-            ggufFileInput.style.display = 'none';
-        }
-        
-        // Remote auth toggle
-        document.getElementById('remoteRequiresAuth').addEventListener('change', (e) => {
-            document.getElementById('remoteAuthSettings').style.display = e.target.checked ? 'block' : 'none';
-        });
-        
-        // Temperature sliders
-        document.getElementById('localTemperature').addEventListener('input', (e) => {
-            document.getElementById('localTempValue').textContent = e.target.value;
-        });
-        document.getElementById('apiTemperature').addEventListener('input', (e) => {
-            document.getElementById('apiTempValue').textContent = e.target.value;
-        });
-        
-        // Test connection
-        document.getElementById('testConnectionBtn').addEventListener('click', () => this.testRemoteConnection());
-        
-        // Run test
-        document.getElementById('runTestBtn').addEventListener('click', () => this.runConfigTest());
-    },
-    
-    async openSettings() {
-        const modal = document.getElementById('aiSettingsModal');
-        
-        if (!modal) {
-            console.error('AI Settings modal not found!');
-            return;
-        }
-        
-        modal.classList.add('active');
-        
-        // Load current config into form
-        this.populateSettingsForm();
-        
-        // Scan for models in Electron
-        if (isElectron) {
-            await this.scanAndPopulateModels();
-            await this.updateModelStatus();
-        }
-    },
-    
-    async scanAndPopulateModels() {
-        try {
-            const models = await window.electronAPI.scanModelsFolder();
-            const select = document.getElementById('localModelSelect');
-            
-            // Clear existing options except "Select" and "Custom"
-            select.innerHTML = `
-                <option value="">-- Select a model --</option>
-            `;
-            
-            // Add detected models
-            if (models && models.length > 0) {
-                models.forEach(model => {
-                    const option = document.createElement('option');
-                    option.value = model.path;
-                    option.textContent = `${model.name} (${model.sizeFormatted})`;
-                    select.appendChild(option);
-                });
-            } else {
-                const option = document.createElement('option');
-                option.value = '';
-                option.disabled = true;
-                option.textContent = '-- No models found in models/ folder --';
-                select.appendChild(option);
-            }
-            
-            // Add custom option at the end
-            const customOption = document.createElement('option');
-            customOption.value = 'custom';
-            customOption.textContent = 'Load Custom GGUF File...';
-            select.appendChild(customOption);
-            
-            // Restore selected value if exists
-            if (this.config.local.modelPath && this.config.local.modelPath !== 'default') {
-                select.value = this.config.local.modelPath;
-            }
-        } catch (error) {
-            console.error('Error scanning models folder:', error);
-        }
-    },
-    
-    async updateModelStatus() {
-        if (!isElectron) return;
-        
-        try {
-            const isLoaded = await window.electronAPI.isModelLoaded();
-            const statusSection = document.getElementById('modelStatusSection');
-            const statusText = document.getElementById('modelStatus');
-            const unloadBtn = document.getElementById('unloadModelBtn');
-            
-            statusSection.style.display = 'block';
-            
-            if (isLoaded) {
-                statusText.innerHTML = '<span style="color: #4CAF50;">✓ Model loaded and ready</span>';
-                statusText.style.color = '#4CAF50';
-                unloadBtn.style.display = 'block';
-            } else {
-                statusText.innerHTML = '<span style="color: #888;">No model loaded</span>';
-                statusText.style.color = '#888';
-                unloadBtn.style.display = 'none';
-            }
-        } catch (error) {
-            console.error('Error checking model status:', error);
-        }
-    },
-    
-    closeSettings() {
-        const modal = document.getElementById('aiSettingsModal');
-        
-        if (!modal) return;
-        
-        // Blur any focused element in the modal first
-        const activeElement = document.activeElement;
-        if (activeElement && modal.contains(activeElement)) {
-            activeElement.blur();
-        }
-        
-        // Remove the active class - CSS handles the rest
-        modal.classList.remove('active');
-        
-        const testSection = document.getElementById('aiTestSection');
-        const testResult = document.getElementById('testResult');
-        
-        if (testSection) testSection.style.display = 'none';
-        if (testResult) testResult.classList.remove('active');
-        
-        // Force focus back to the chat input after modal closes
-        // Multiple attempts to ensure focus is properly restored
-        const chatInput = document.getElementById('aiInput');
-        if (chatInput) {
-            // Immediate focus attempt
-            chatInput.focus();
-            
-            // Delayed focus attempt to handle any async issues
-            setTimeout(() => {
-                chatInput.focus();
-            }, 10);
-            
-            // Final focus attempt after UI has settled
-            setTimeout(() => {
-                chatInput.focus();
-                chatInput.select(); // Also select the text to make it obvious it's focused
-            }, 100);
-        }
-    },
-    
-    showModeSettings(mode) {
-        document.getElementById('localSettings').style.display = mode === 'local' ? 'block' : 'none';
-        document.getElementById('apiSettings').style.display = mode === 'api' ? 'block' : 'none';
-        document.getElementById('remoteSettings').style.display = mode === 'remote' ? 'block' : 'none';
-        document.getElementById('aiTestSection').style.display = 'block';
-    },
-    
-    populateSettingsForm() {
-        // Set mode
-        if (this.config.mode) {
-            document.getElementById(`aiMode${this.config.mode.charAt(0).toUpperCase() + this.config.mode.slice(1)}`).checked = true;
-            this.showModeSettings(this.config.mode);
-        }
-        
-        // Local settings
-        document.getElementById('localContextLength').value = this.config.local.contextLength;
-        document.getElementById('localTemperature').value = this.config.local.temperature;
-        document.getElementById('localTempValue').textContent = this.config.local.temperature;
-        
-        // API settings
-        document.getElementById('apiProvider').value = this.config.api.provider;
-        if (this.config.api.endpoint) document.getElementById('apiEndpoint').value = this.config.api.endpoint;
-        if (this.config.api.apiKey) document.getElementById('apiKey').value = this.config.api.apiKey;
-        document.getElementById('apiModel').value = this.config.api.model;
-        document.getElementById('apiTemperature').value = this.config.api.temperature;
-        document.getElementById('apiTempValue').textContent = this.config.api.temperature;
-        document.getElementById('apiMaxTokens').value = this.config.api.maxTokens;
-        
-        // Remote settings
-        if (this.config.remote.serverUrl) document.getElementById('remoteServerUrl').value = this.config.remote.serverUrl;
-        document.getElementById('remoteEndpointPath').value = this.config.remote.endpointPath;
-        document.getElementById('remoteRequiresAuth').checked = this.config.remote.requiresAuth;
-        document.getElementById('remoteAuthSettings').style.display = this.config.remote.requiresAuth ? 'block' : 'none';
-        document.getElementById('remoteAuthType').value = this.config.remote.authType;
-        if (this.config.remote.authToken) document.getElementById('remoteAuthToken').value = this.config.remote.authToken;
-        document.getElementById('remoteRequestFormat').value = this.config.remote.requestFormat;
-    },
-    
-    saveSettings() {
-        const mode = document.querySelector('input[name="aiMode"]:checked')?.value;
-        
-        if (!mode) {
-            alert('Please select an AI mode.');
-            return;
-        }
-        
-        this.config.mode = mode;
-        
-        // Save mode-specific settings
-        if (mode === 'local') {
-            const oldContextLength = this.config.local.contextLength;
-            const newContextLength = parseInt(document.getElementById('localContextLength').value);
-            
-            this.config.local.contextLength = newContextLength;
-            this.config.local.temperature = parseFloat(document.getElementById('localTemperature').value);
-            
-            const modelSelect = document.getElementById('localModelSelect').value;
-            if (!modelSelect) {
-                alert('Please select a model.');
-                return;
-            }
-            
-            if (modelSelect === 'custom') {
-                // Check if using Electron file picker or web file input
-                if (isElectron && this.config.local.modelFile) {
-                    this.config.local.modelPath = this.config.local.modelFile.path;
-                } else {
-                    const fileInput = document.getElementById('ggufFileInput');
-                    if (fileInput.files.length === 0) {
-                        alert('Please select a GGUF model file.');
-                        return;
-                    }
-                    // File will be loaded when AI is initialized
-                    this.config.local.modelPath = 'custom';
-                }
-            } else {
-                // Store the actual model path from detected models
-                this.config.local.modelPath = modelSelect;
-            }
-            
-            // Reload model if context length changed
-            if (isElectron && oldContextLength !== newContextLength) {
-                window.electronAPI.isModelLoaded().then(isLoaded => {
-                    if (isLoaded) {
-                        this.showToast('<img src="icons/actions/refresh.svg" alt="" width="16" height="16" style="vertical-align: middle;"> Reloading model with new context length...');
-                        window.electronAPI.unloadModel().then(() => {
-                            window.electronAPI.loadModel(this.config.local.modelPath, {
-                                contextLength: newContextLength
-                            }).catch(error => {
-                                console.error('Error reloading model:', error);
-                                this.showToast(`<img src="icons/status/error.svg" alt="" width="16" height="16" style="vertical-align: middle;"> Failed to reload model: ${error.message}`);
-                            });
-                        });
-                    }
-                });
-            }
-        } else if (mode === 'api') {
-            this.config.api.provider = document.getElementById('apiProvider').value;
-            this.config.api.apiKey = document.getElementById('apiKey').value;
-            this.config.api.model = document.getElementById('apiModel').value;
-            this.config.api.temperature = parseFloat(document.getElementById('apiTemperature').value);
-            this.config.api.maxTokens = parseInt(document.getElementById('apiMaxTokens').value);
-            
-            if (this.config.api.provider === 'custom') {
-                this.config.api.endpoint = document.getElementById('apiEndpoint').value;
-                if (!this.config.api.endpoint) {
-                    alert('Please enter an API endpoint.');
-                    return;
-                }
-            } else {
-                // Set default endpoints
-                const endpoints = {
-                    'openai': 'https://api.openai.com/v1/chat/completions',
-                    'anthropic': 'https://api.anthropic.com/v1/messages',
-                    'cohere': 'https://api.cohere.ai/v1/chat',
-                    'google': 'https://generativelanguage.googleapis.com/v1beta/models',
-                    'mistral': 'https://api.mistral.ai/v1/chat/completions'
-                };
-                this.config.api.endpoint = endpoints[this.config.api.provider];
-            }
-            
-            if (!this.config.api.apiKey) {
-                alert('Please enter an API key.');
-                return;
-            }
-        } else if (mode === 'remote') {
-            this.config.remote.serverUrl = document.getElementById('remoteServerUrl').value;
-            this.config.remote.endpointPath = document.getElementById('remoteEndpointPath').value;
-            this.config.remote.requiresAuth = document.getElementById('remoteRequiresAuth').checked;
-            this.config.remote.authType = document.getElementById('remoteAuthType').value;
-            this.config.remote.authToken = document.getElementById('remoteAuthToken').value;
-            this.config.remote.requestFormat = document.getElementById('remoteRequestFormat').value;
-            
-            if (!this.config.remote.serverUrl) {
-                alert('Please enter a server URL.');
-                return;
-            }
-        }
-        
-        // Save to localStorage
-        this.saveConfig();
-        this.updateStatus();
-        
-        // Close the modal first
-        this.closeSettings();
-        
-        // Show non-blocking success message after modal is closed
-        this.showToast('✅ AI Configuration saved successfully!');
-    },
-    
-    loadConfig() {
-        try {
-            const saved = localStorage.getItem(ProjectManager.getStorageKey('ai_config'));
-            if (saved) {
-                const config = JSON.parse(saved);
-                this.config = { ...this.config, ...config };
-            }
-        } catch (error) {
-            console.error('Error loading AI config:', error);
-        }
-    },
-    
-    saveConfig() {
-        try {
-            localStorage.setItem(ProjectManager.getStorageKey('ai_config'), JSON.stringify(this.config));
-        } catch (error) {
-            console.error('Error saving AI config:', error);
-        }
-    },
-    
-    updateStatus() {
-        const statusText = document.getElementById('aiStatusText');
-        const dot = document.querySelector('.status-dot');
-        
-        if (!this.config.mode) {
-            statusText.textContent = 'Not Configured';
-            dot.className = 'status-dot error';
-        } else {
-            const modes = {
-                'local': '<img src="icons/misc/computer.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Local Model',
-                'api': '<img src="icons/misc/key.svg" alt="" width="14" height="14" style="vertical-align: middle;"> API Connected',
-                'remote': '<img src="icons/misc/globe.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Remote Server'
-            };
-            statusText.innerHTML = modes[this.config.mode] || 'Ready';
-            dot.className = 'status-dot';
-        }
-    },
-    
-    async testRemoteConnection() {
-        const url = document.getElementById('remoteServerUrl').value;
-        const path = document.getElementById('remoteEndpointPath').value;
-        
-        if (!url) {
-            alert('Please enter a server URL.');
-            return;
-        }
-        
-        const testResult = document.getElementById('testResult');
-        testResult.className = 'test-result active loading';
-        testResult.textContent = '🔄 Testing connection...';
-        
-        try {
-            const fullUrl = url + path;
-            const response = await fetch(fullUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ test: true })
-            });
-            
-            if (response.ok) {
-                testResult.className = 'test-result active success';
-                testResult.textContent = '✅ Connection successful!';
-            } else {
-                testResult.className = 'test-result active error';
-                testResult.textContent = `❌ Connection failed: ${response.status} ${response.statusText}`;
-            }
-        } catch (error) {
-            testResult.className = 'test-result active error';
-            testResult.textContent = `❌ Connection error: ${error.message}`;
-        }
-    },
-    
-    async runConfigTest() {
-        const mode = document.querySelector('input[name="aiMode"]:checked')?.value;
-        if (!mode) {
-            alert('Please select an AI mode first.');
-            return;
-        }
-        
-        const testPrompt = document.getElementById('testPrompt').value;
-        const testResult = document.getElementById('testResult');
-        
-        testResult.className = 'test-result active loading';
-        testResult.textContent = '🔄 Testing AI configuration...';
-        
-        try {
-            // Temporarily save settings for test
-            const tempConfig = { ...this.config };
-            this.saveSettings();
-            
-            const response = await this.getAIResponse(testPrompt);
-            
-            testResult.className = 'test-result active success';
-            testResult.innerHTML = `<strong>✅ Test successful!</strong><br><br><strong>Response:</strong><br>${this.formatMessage(response)}`;
-        } catch (error) {
-            testResult.className = 'test-result active error';
-            testResult.innerHTML = `<strong>❌ Test failed!</strong><br><br>${error.message}`;
-        }
-    },
-    
-    showToast(message) {
-        // Create toast notification element
-        const toast = document.createElement('div');
-        toast.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-            padding: 1rem 2rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            z-index: 99999;
-            font-size: 1rem;
-            font-weight: 600;
-            animation: fadeInOut 2s ease-in-out;
-        `;
-        toast.textContent = message;
-        
-        // Add animation keyframes if not already present
-        if (!document.getElementById('toastAnimation')) {
-            const style = document.createElement('style');
-            style.id = 'toastAnimation';
-            style.textContent = `
-                @keyframes fadeInOut {
-                    0%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
-                    10%, 90% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-                }
-            `;
-            document.head.appendChild(style);
-        }
-        
-        document.body.appendChild(toast);
-        
-        // Remove toast after animation
-        setTimeout(() => {
-            toast.remove();
-        }, 2000);
-    }
-};
-
-// ============================================
-// Relationship Graph Visualization (REMOVED - Not working properly)
-// ============================================
-/* const RelationshipGraph = {
-    canvas: null,
-    ctx: null,
-    nodes: [],
-    edges: [],
-    selectedNode: null,
-    hoveredNode: null,
-    draggedNode: null,
-    scale: 1,
-    offsetX: 0,
-    offsetY: 0,
-    panStart: null,
-    nodeSize: 15,
-    showLabels: true,
-    physicsEnabled: true,
-    animationFrame: null,
-    
-    typeColors: {
-        'note': '#3b82f6',
-        'class': '#8b5cf6',
-        'mechanic': '#ec4899',
-        'character': '#f59e0b',
-        'location': '#10b981',
-        'timeline': '#06b6d4',
-        'conflict': '#ef4444',
-        'theme': '#a855f7',
-        'act': '#f97316',
-        'scene': '#14b8a6'
-    },
-    
-    visibleTypes: new Set(['note', 'class', 'mechanic', 'character', 'location', 'timeline', 'conflict', 'theme', 'act', 'scene']),
-    
-    init() {
-        this.canvas = document.getElementById('relationshipGraph');
-        if (!this.canvas) {
-            console.warn('Relationship graph canvas not found');
-            return;
-        }
-        
-        this.ctx = this.canvas.getContext('2d');
-        this.resizeCanvas();
-        
-        window.addEventListener('resize', () => {
-            if (AppState.currentSection === 'graph') {
-                this.resizeCanvas();
-            }
-        });
-        
-        // Controls
-        document.getElementById('graphResetViewBtn')?.addEventListener('click', () => this.resetView());
-        document.getElementById('graphExportBtn')?.addEventListener('click', () => this.exportAsImage());
-        
-        // Type filters
-        ['Notes', 'Classes', 'Mechanics', 'Characters', 'Locations', 'Timeline', 'Conflicts', 'Themes', 'Acts', 'Scenes'].forEach((type, index) => {
-            const typeKey = type.toLowerCase().slice(0, -1); // Remove 's' from plural
-            const checkbox = document.getElementById(`graphShow${type}`);
-            if (checkbox) {
-                checkbox.addEventListener('change', (e) => {
-                    if (e.target.checked) {
-                        this.visibleTypes.add(typeKey);
-                    } else {
-                        this.visibleTypes.delete(typeKey);
-                    }
-                    this.buildGraph();
-                    this.render();
-                });
-            }
-        });
-        
-        // Settings
-        document.getElementById('graphPhysicsEnabled')?.addEventListener('change', (e) => {
-            this.physicsEnabled = e.target.checked;
-            if (this.physicsEnabled) {
-                this.startPhysics();
-            } else {
-                this.stopPhysics();
-            }
-        });
-        
-        document.getElementById('graphNodeSize')?.addEventListener('input', (e) => {
-            this.nodeSize = parseInt(e.target.value);
-            this.render();
-        });
-        
-        document.getElementById('graphShowLabels')?.addEventListener('change', (e) => {
-            this.showLabels = e.target.checked;
-            this.render();
-        });
-        
-        // Canvas interactions
-        this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
-        this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
-        this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
-        this.canvas.addEventListener('mouseleave', (e) => this.handleMouseUp(e));
-        this.canvas.addEventListener('wheel', (e) => this.handleWheel(e));
-        this.canvas.addEventListener('click', (e) => this.handleClick(e));
-        
-        // Build initial graph
-        this.buildGraph();
-        this.render();
-    },
-    
-    resizeCanvas() {
-        if (!this.canvas) return;
-        const container = this.canvas.parentElement;
-        const width = container.clientWidth;
-        const height = container.clientHeight;
-        
-        if (width > 0 && height > 0) {
-            this.canvas.width = width;
-            this.canvas.height = height;
-            console.log(`Graph canvas resized to ${width}x${height}`);
-            this.render();
-        } else {
-            console.warn('Graph canvas has zero dimensions, waiting for section to be visible');
-        }
-    },
-    
-    buildGraph() {
-        this.nodes = [];
-        this.edges = [];
-        
-        // Get all items from RelationshipManager
-        const allItems = RelationshipManager.getAllItems();
-        console.log(`Building graph with ${allItems.length} total items`);
-        
-        // Filter by visible types
-        const visibleItems = allItems.filter(item => this.visibleTypes.has(item.type));
-        console.log(`Filtered to ${visibleItems.length} visible items`);
-        
-        // Create nodes
-        visibleItems.forEach(item => {
-            // Count connections
-            const connections = (item.data.relatedItems || []).length + 
-                              RelationshipManager.getReferencedBy(item.id).length;
-            
-            // Initialize position if not set or if canvas was resized
-            const centerX = this.canvas.width > 0 ? this.canvas.width / 2 : 400;
-            const centerY = this.canvas.height > 0 ? this.canvas.height / 2 : 300;
-            
-            if (!item.graphX || !item.graphY || item.graphX === 0 || item.graphY === 0) {
-                const angle = Math.random() * Math.PI * 2;
-                const radius = 100 + Math.random() * 200;
-                item.graphX = centerX + Math.cos(angle) * radius;
-                item.graphY = centerY + Math.sin(angle) * radius;
-                item.graphVx = 0;
-                item.graphVy = 0;
-            }
-            
-            this.nodes.push({
-                id: item.id,
-                type: item.type,
-                name: item.name,
-                x: item.graphX,
-                y: item.graphY,
-                vx: item.graphVx || 0,
-                vy: item.graphVy || 0,
-                connections: connections,
-                data: item
-            });
-        });
-        
-        // Create edges (use a Set to avoid duplicates)
-        const edgeSet = new Set();
-        let edgeCount = 0;
-        visibleItems.forEach(item => {
-            // Check if item has relatedItems in its data object
-            if (!item.data.relatedItems || !Array.isArray(item.data.relatedItems)) {
-                return;
-            }
-            
-            item.data.relatedItems.forEach(rel => {
-                // Only create edge if target is also visible
-                if (this.visibleTypes.has(rel.type)) {
-                    // Create a unique key for this edge (sorted to avoid duplicates)
-                    const edgeKey = [item.id, rel.id].sort().join('|');
-                    if (!edgeSet.has(edgeKey)) {
-                        edgeSet.add(edgeKey);
-                        this.edges.push({
-                            source: item.id,
-                            target: rel.id
-                        });
-                        edgeCount++;
-                    }
-                }
-            });
-            
-            // Also check for reverse references (items that reference this item)
-            const referencedBy = RelationshipManager.getReferencedBy(item.id);
-            referencedBy.forEach(ref => {
-                // Only create edge if the referencing item is visible
-                if (this.visibleTypes.has(ref.type)) {
-                    // Create a unique key for this edge (sorted to avoid duplicates)
-                    const edgeKey = [item.id, ref.id].sort().join('|');
-                    if (!edgeSet.has(edgeKey)) {
-                        edgeSet.add(edgeKey);
-                        this.edges.push({
-                            source: ref.id,
-                            target: item.id
-                        });
-                        edgeCount++;
-                    }
-                }
-            });
-        });
-        console.log('Total edges created:', edgeCount);
-        
-        // Update stats
-        this.updateStats();
-        
-        // Start physics if enabled
-        if (this.physicsEnabled) {
-            this.startPhysics();
-        }
-    },
-    
-    updateStats() {
-        const statsEl = document.getElementById('graphStats');
-        if (statsEl) {
-            statsEl.textContent = `Nodes: ${this.nodes.length} | Edges: ${this.edges.length}`;
-        }
-    },
-    
-    startPhysics() {
-        if (this.animationFrame) return;
-        
-        const animate = () => {
-            this.applyForces();
-            this.render();
-            this.animationFrame = requestAnimationFrame(animate);
-        };
-        
-        animate();
-    },
-    
-    stopPhysics() {
-        if (this.animationFrame) {
-            cancelAnimationFrame(this.animationFrame);
-            this.animationFrame = null;
-        }
-    },
-    
-    applyForces() {
-        // Use default center if canvas not ready
-        const centerX = this.canvas.width > 0 ? this.canvas.width / 2 : 400;
-        const centerY = this.canvas.height > 0 ? this.canvas.height / 2 : 300;
-        const repulsionStrength = 2000;
-        const attractionStrength = 0.001;
-        const damping = 0.9;
-        const centerAttraction = 0.001;
-        
-        // Reset forces
-        this.nodes.forEach(node => {
-            node.fx = 0;
-            node.fy = 0;
-        });
-        
-        // Repulsion between all nodes
-        for (let i = 0; i < this.nodes.length; i++) {
-            for (let j = i + 1; j < this.nodes.length; j++) {
-                const node1 = this.nodes[i];
-                const node2 = this.nodes[j];
-                
-                const dx = node2.x - node1.x;
-                const dy = node2.y - node1.y;
-                const distance = Math.sqrt(dx * dx + dy * dy) || 1;
-                
-                const force = repulsionStrength / (distance * distance);
-                const fx = (dx / distance) * force;
-                const fy = (dy / distance) * force;
-                
-                node1.fx -= fx;
-                node1.fy -= fy;
-                node2.fx += fx;
-                node2.fy += fy;
-            }
-        }
-        
-        // Attraction along edges
-        this.edges.forEach(edge => {
-            const source = this.nodes.find(n => n.id === edge.source);
-            const target = this.nodes.find(n => n.id === edge.target);
-            
-            if (!source || !target) return;
-            
-            const dx = target.x - source.x;
-            const dy = target.y - source.y;
-            const distance = Math.sqrt(dx * dx + dy * dy) || 1;
-            
-            const force = distance * attractionStrength;
-            const fx = (dx / distance) * force;
-            const fy = (dy / distance) * force;
-            
-            source.fx += fx;
-            source.fy += fy;
-            target.fx -= fx;
-            target.fy -= fy;
-        });
-        
-        // Apply center attraction and update positions
-        this.nodes.forEach(node => {
-            if (node === this.draggedNode) return;
-            
-            // Center attraction
-            const dx = centerX - node.x;
-            const dy = centerY - node.y;
-            node.fx += dx * centerAttraction;
-            node.fy += dy * centerAttraction;
-            
-            // Update velocity
-            node.vx = (node.vx + node.fx) * damping;
-            node.vy = (node.vy + node.fy) * damping;
-            
-            // Update position
-            node.x += node.vx;
-            node.y += node.vy;
-            
-            // Save to data
-            if (node.data) {
-                node.data.graphX = node.x;
-                node.data.graphY = node.y;
-                node.data.graphVx = node.vx;
-                node.data.graphVy = node.vy;
-            }
-        });
-    },
-    
-    render() {
-        if (!this.ctx || !this.canvas) return;
-        
-        // Don't render if canvas has no dimensions
-        if (this.canvas.width === 0 || this.canvas.height === 0) {
-            return;
-        }
-        
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.ctx.save();
-        
-        // Apply zoom and pan
-        this.ctx.translate(this.offsetX, this.offsetY);
-        this.ctx.scale(this.scale, this.scale);
-        
-        // Get connected nodes if something is selected
-        const connectedNodeIds = new Set();
-        if (this.selectedNode) {
-            connectedNodeIds.add(this.selectedNode.id);
-            this.edges.forEach(edge => {
-                if (edge.source === this.selectedNode.id) {
-                    connectedNodeIds.add(edge.target);
-                }
-                if (edge.target === this.selectedNode.id) {
-                    connectedNodeIds.add(edge.source);
-                }
-            });
-        }
-        
-        // Draw edges
-        this.ctx.strokeStyle = '#e5e7eb';
-        this.ctx.lineWidth = 1;
-        this.edges.forEach(edge => {
-            const source = this.nodes.find(n => n.id === edge.source);
-            const target = this.nodes.find(n => n.id === edge.target);
-            
-            if (!source || !target) return;
-            
-            // Determine if this edge is connected to selected node
-            const isConnectedToSelected = this.selectedNode && 
-                (source.id === this.selectedNode.id || target.id === this.selectedNode.id);
-            
-            // Gray out edges not connected to selected node
-            if (this.selectedNode && !isConnectedToSelected) {
-                this.ctx.strokeStyle = '#d1d5db';
-                this.ctx.lineWidth = 0.5;
-                this.ctx.globalAlpha = 0.3;
-            }
-            // Highlight if connected to hovered node (when nothing selected)
-            else if (!this.selectedNode && this.hoveredNode && (source.id === this.hoveredNode.id || target.id === this.hoveredNode.id)) {
-                this.ctx.strokeStyle = '#f59e0b';
-                this.ctx.lineWidth = 2;
-                this.ctx.globalAlpha = 1;
-            }
-            // Highlight if connected to selected node
-            else if (isConnectedToSelected) {
-                this.ctx.strokeStyle = '#3b82f6';
-                this.ctx.lineWidth = 3;
-                this.ctx.globalAlpha = 1;
-            }
-            // Normal edges
-            else {
-                this.ctx.strokeStyle = '#e5e7eb';
-                this.ctx.lineWidth = 1;
-                this.ctx.globalAlpha = 1;
-            }
-            
-            this.ctx.beginPath();
-            this.ctx.moveTo(source.x, source.y);
-            this.ctx.lineTo(target.x, target.y);
-            this.ctx.stroke();
-            this.ctx.globalAlpha = 1;
-        });
-        
-        // Draw nodes
-        this.nodes.forEach(node => {
-            const size = this.nodeSize + (node.connections * 2);
-            let color = this.typeColors[node.type] || '#6b7280';
-            
-            // Determine if this node is connected to selected node
-            const isConnected = !this.selectedNode || connectedNodeIds.has(node.id);
-            
-            // Gray out unconnected nodes
-            if (this.selectedNode && !isConnected) {
-                // Convert to grayscale
-                color = '#9ca3af';
-                this.ctx.globalAlpha = 0.3;
-            } else {
-                this.ctx.globalAlpha = 1;
-            }
-            
-            // Node circle
-            this.ctx.fillStyle = color;
-            this.ctx.beginPath();
-            this.ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
-            this.ctx.fill();
-            
-            // Border for hovered/selected
-            if (node === this.hoveredNode || node === this.selectedNode) {
-                this.ctx.strokeStyle = node === this.selectedNode ? '#fbbf24' : '#ffffff';
-                this.ctx.lineWidth = 4;
-                this.ctx.globalAlpha = 1;
-                this.ctx.stroke();
-            }
-            
-            // Extra highlight ring for connected nodes when something is selected
-            if (this.selectedNode && isConnected && node !== this.selectedNode) {
-                this.ctx.strokeStyle = '#60a5fa';
-                this.ctx.lineWidth = 2;
-                this.ctx.globalAlpha = 0.8;
-                this.ctx.stroke();
-            }
-            
-            this.ctx.globalAlpha = 1;
-            
-            // Label
-            if (this.showLabels) {
-                if (this.selectedNode && !isConnected) {
-                    this.ctx.fillStyle = '#9ca3af';
-                    this.ctx.globalAlpha = 0.5;
-                } else {
-                    this.ctx.fillStyle = '#111827';
-                    this.ctx.globalAlpha = 1;
-                }
-                this.ctx.font = '12px system-ui';
-                this.ctx.textAlign = 'center';
-                this.ctx.fillText(node.name, node.x, node.y + size + 15);
-                this.ctx.globalAlpha = 1;
-            }
-        });
-        
-        this.ctx.restore();
-        
-        // Update selection info display
-        this.updateSelectionInfo();
-    },
-    
-    updateSelectionInfo() {
-        const infoEl = document.getElementById('graphSelectionInfo');
-        if (!infoEl) return;
-        
-        if (this.selectedNode) {
-            // Count connected nodes
-            const connectedCount = this.edges.filter(edge => 
-                edge.source === this.selectedNode.id || edge.target === this.selectedNode.id
-            ).length;
-            
-            infoEl.innerHTML = `
-                <strong>${this.selectedNode.name}</strong>
-                <em>${this.selectedNode.type}</em> • ${connectedCount} connection(s)
-                <small>Click empty space or the node again to deselect</small>
-            `;
-            infoEl.classList.add('active');
-        } else {
-            infoEl.classList.remove('active');
-        }
-    },
-    
-    getMousePos(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        return {
-            x: (e.clientX - rect.left - this.offsetX) / this.scale,
-            y: (e.clientY - rect.top - this.offsetY) / this.scale
-        };
-    },
-    
-    getNodeAt(x, y) {
-        for (let i = this.nodes.length - 1; i >= 0; i--) {
-            const node = this.nodes[i];
-            const size = this.nodeSize + (node.connections * 2);
-            const dx = x - node.x;
-            const dy = y - node.y;
-            
-            if (dx * dx + dy * dy <= size * size) {
-                return node;
-            }
-        }
-        return null;
-    },
-    
-    handleMouseDown(e) {
-        const pos = this.getMousePos(e);
-        const node = this.getNodeAt(pos.x, pos.y);
-        
-        if (node) {
-            this.draggedNode = node;
-        } else {
-            this.panStart = { x: e.clientX, y: e.clientY };
-        }
-    },
-    
-    handleMouseMove(e) {
-        const pos = this.getMousePos(e);
-        
-        if (this.draggedNode) {
-            this.draggedNode.x = pos.x;
-            this.draggedNode.y = pos.y;
-            this.draggedNode.vx = 0;
-            this.draggedNode.vy = 0;
-            if (!this.physicsEnabled) this.requestRender();
-        } else if (this.panStart) {
-            const dx = e.clientX - this.panStart.x;
-            const dy = e.clientY - this.panStart.y;
-            this.offsetX += dx;
-            this.offsetY += dy;
-            this.panStart = { x: e.clientX, y: e.clientY };
-            if (!this.physicsEnabled) this.requestRender();
-        } else {
-            // Update hovered node
-            const node = this.getNodeAt(pos.x, pos.y);
-            if (node !== this.hoveredNode) {
-                this.hoveredNode = node;
-                this.showTooltip(node, e);
-                if (!this.physicsEnabled) this.requestRender();
-            }
-        }
-    },
-    
-    requestRender() {
-        if (!this.renderRequested) {
-            this.renderRequested = true;
-            requestAnimationFrame(() => {
-                this.render();
-                this.renderRequested = false;
-            });
-        }
-    },
-    
-    handleMouseUp(e) {
-        this.draggedNode = null;
-        this.panStart = null;
-    },
-    
-    handleWheel(e) {
-        e.preventDefault();
-        const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        this.scale *= delta;
-        this.scale = Math.max(0.1, Math.min(5, this.scale));
-        if (!this.physicsEnabled) this.render();
-    },
-    
-    handleClick(e) {
-        const pos = this.getMousePos(e);
-        const node = this.getNodeAt(pos.x, pos.y);
-        
-        if (node) {
-            // If clicking the same node, deselect it
-            if (this.selectedNode === node) {
-                this.selectedNode = null;
-            } else {
-                this.selectedNode = node;
-            }
-            if (!this.physicsEnabled) this.render();
-        } else {
-            // Clicked empty space - deselect
-            if (this.selectedNode) {
-                this.selectedNode = null;
-                if (!this.physicsEnabled) this.render();
-            }
-        }
-    },
-    
-    showTooltip(node, e) {
-        const tooltip = document.getElementById('graphTooltip');
-        if (!tooltip) return;
-        
-        if (node) {
-            let html = `
-                <strong>${node.name}</strong><br>
-                <em>${node.type}</em><br>
-                ${node.connections} connection(s)
-            `;
-            
-            // Add hint about clicking
-            if (this.selectedNode === node) {
-                html += '<br><small style="color: #fbbf24;">Click again to deselect</small>';
-            } else {
-                html += '<br><small style="color: #9ca3af;">Click to select and navigate</small>';
-            }
-            
-            tooltip.innerHTML = html;
-            tooltip.style.left = e.clientX + 10 + 'px';
-            tooltip.style.top = e.clientY + 10 + 'px';
-            tooltip.style.display = 'block';
-        } else {
-            tooltip.style.display = 'none';
-        }
-    },
-    
-    resetView() {
-        this.scale = 1;
-        this.offsetX = 0;
-        this.offsetY = 0;
-        this.selectedNode = null;
-        this.hoveredNode = null;
-        this.buildGraph();
-        this.render();
-    },
-    
-    exportAsImage() {
-        const link = document.createElement('a');
-        link.download = 'relationship-graph.png';
-        link.href = this.canvas.toDataURL();
-        link.click();
-    }
-}; */
 
 // ============================================
 // Application Initialization
@@ -19179,7 +17066,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Initialize utility tools
     QuickNotes.init();
-    AIAssistant.init();
     
     // Check for reminders on load
     NotesManager.checkReminders();

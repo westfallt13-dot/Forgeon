@@ -14209,7 +14209,6 @@ const DataManager = {
     init() {
         // Export buttons
         const exportDocBtn = document.getElementById('exportDocumentationBtn');
-        const exportJSONBtn = document.getElementById('exportJSONBtn');
         const exportBtn = document.getElementById('exportDataBtn');
         
         // Import controls
@@ -14219,11 +14218,6 @@ const DataManager = {
         // Documentation export
         if (exportDocBtn) {
             exportDocBtn.addEventListener('click', () => DocumentationExporter.export());
-        }
-        
-        // JSON export
-        if (exportJSONBtn) {
-            exportJSONBtn.addEventListener('click', () => this.exportJSON());
         }
         
         // Full data export (ZIP)
@@ -14631,53 +14625,6 @@ const DataManager = {
         
         // Reset file input
         document.getElementById('importFileInput').value = '';
-    },
-    
-    // JSON-only Export/Import (no files, just data)
-    exportJSON() {
-        try {
-            const timestamp = new Date().toISOString();
-            const data = {
-                version: '3.0',
-                exportDate: timestamp,
-                appName: 'Forgeon Game Design Planner',
-                data: {
-                    // Core data
-                    tasks: AppState.tasks,
-                    assets: AppState.assets,
-                    milestones: AppState.milestones,
-                    notes: AppState.notes,
-                    theme: AppState.theme,
-                    
-                    // Game design data
-                    classes: AppState.classes,
-                    mechanics: AppState.mechanics,
-                    
-                    // Story data (all in one object)
-                    story: AppState.story
-                }
-            };
-            
-            const jsonString = JSON.stringify(data, null, 2);
-            const blob = new Blob([jsonString], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            const dateStr = new Date().toISOString().split('T')[0];
-            const currentProject = ProjectManager.getCurrentProject();
-            const projectName = currentProject?.name || 'Untitled-Project';
-            const safeName = projectName.replace(/[^a-zA-Z0-9-_]/g, '-');
-            a.download = `${safeName}-Design-${dateStr}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            alert('✅ Game design exported successfully!\n\nNote: This export does not include uploaded files. Use "Export ZIP" to include files.');
-        } catch (error) {
-            console.error('JSON Export error:', error);
-            alert('Error exporting data: ' + error.message);
-        }
     },
     
     importJSON(file) {

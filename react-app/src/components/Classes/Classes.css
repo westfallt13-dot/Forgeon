@@ -1,0 +1,380 @@
+/* ── Classes Section ──────────────────────────────────────────────────────────── */
+
+.classes-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Toolbar (Add button + filters) ──────────────────────────────────────── */
+
+.classes-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+/* ── Filter buttons ───────────────────────────────────────────────────────── */
+
+.classes-filters {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--bg-secondary, #f1f5f9);
+  border-radius: 8px;
+  padding: 0.25rem;
+}
+
+.classes-filters .filter-btn {
+  padding: 0.4rem 0.75rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary, #64748b);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.classes-filters .filter-btn:hover {
+  color: var(--text-primary, #1e293b);
+  background: var(--bg-primary, #fff);
+}
+
+.classes-filters .filter-btn.active {
+  background: var(--primary-color, #6366f1);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+/* ── Class list ───────────────────────────────────────────────────────────── */
+
+.classes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ── Empty state ──────────────────────────────────────────────────────────── */
+
+.classes-empty {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--text-tertiary, #94a3b8);
+  border: 2px dashed var(--border-color, #e2e8f0);
+  border-radius: 12px;
+  font-size: 0.95rem;
+}
+
+/* ── Class card ───────────────────────────────────────────────────────────── */
+
+.class-card {
+  padding: 1rem 1.25rem;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 10px;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.class-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-color: var(--primary-color, #6366f1);
+}
+
+.class-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.class-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.class-card-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.25rem;
+}
+
+.class-card-title strong {
+  font-size: 1rem;
+  color: var(--text-primary, #1e293b);
+}
+
+.class-card-description {
+  font-size: 0.875rem;
+  color: var(--text-secondary, #64748b);
+  line-height: 1.5;
+  margin-bottom: 0.35rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.class-parent-info {
+  font-size: 0.8rem;
+  color: var(--text-tertiary, #94a3b8);
+  margin-bottom: 0.25rem;
+}
+
+.class-parent-info strong {
+  color: var(--text-secondary, #64748b);
+}
+
+/* ── Type badges ──────────────────────────────────────────────────────────── */
+
+.class-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.class-type-badge.character {
+  background: rgba(99, 102, 241, 0.12);
+  color: var(--primary-color, #6366f1);
+}
+
+.class-type-badge.instance {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--warning-color, #f59e0b);
+}
+
+.class-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  background: var(--bg-secondary, #f1f5f9);
+  color: var(--text-secondary, #64748b);
+}
+
+.class-badge.root {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success-color, #10b981);
+}
+
+.class-badge.child {
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--primary-color, #6366f1);
+}
+
+/* ── Card actions ─────────────────────────────────────────────────────────── */
+
+.class-card-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+/* ── Card details ─────────────────────────────────────────────────────────── */
+
+.class-card-details {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.class-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.detail-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #64748b);
+}
+
+.detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+/* ── Attribute badges ─────────────────────────────────────────────────────── */
+
+.attribute-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: var(--bg-secondary, #f1f5f9);
+  color: var(--text-primary, #1e293b);
+}
+
+/* ── Skill badges ─────────────────────────────────────────────────────────── */
+
+.skill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--text-primary, #1e293b);
+}
+
+.skill-badge-name {
+  font-weight: 500;
+}
+
+.skill-badge-bonus {
+  font-weight: 600;
+  color: var(--primary-color, #6366f1);
+  font-size: 0.7rem;
+}
+
+.skill-badge-category {
+  font-size: 0.65rem;
+  color: var(--text-tertiary, #94a3b8);
+  text-transform: capitalize;
+}
+
+/* ── Formulas list ────────────────────────────────────────────────────────── */
+
+.class-card-details .formulas-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.class-card-details .formulas-list li {
+  font-size: 0.8rem;
+}
+
+.class-card-details .formulas-list code {
+  background: var(--bg-secondary, #f1f5f9);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: var(--text-primary, #1e293b);
+}
+
+/* ── Modal form ───────────────────────────────────────────────────────────── */
+
+.class-modal-form {
+  max-width: 700px;
+}
+
+/* ── Radio buttons ────────────────────────────────────────────────────────── */
+
+.class-type-radios {
+  display: flex;
+  gap: 1.25rem;
+  margin-top: 0.25rem;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #64748b);
+  cursor: pointer;
+}
+
+.radio-label input[type='radio'] {
+  accent-color: var(--primary-color, #6366f1);
+}
+
+/* ── Dynamic rows (attributes / skills / formulas) ────────────────────────── */
+
+.dynamic-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.dynamic-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.dynamic-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.dynamic-row .narrow-input {
+  flex: 0 0 70px;
+  max-width: 70px;
+}
+
+.formula-equals {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  font-size: 0.9rem;
+}
+
+.btn-remove-row {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--danger-color, #ef4444);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0.2rem 0.35rem;
+  line-height: 1;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.btn-remove-row:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 700px) {
+  .classes-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .classes-filters {
+    justify-content: center;
+  }
+
+  .class-card-header {
+    flex-direction: column;
+  }
+
+  .class-card-actions {
+    align-self: flex-end;
+  }
+
+  .dynamic-row {
+    flex-wrap: wrap;
+  }
+
+  .dynamic-row .narrow-input {
+    flex: 1 1 60px;
+    max-width: none;
+  }
+}

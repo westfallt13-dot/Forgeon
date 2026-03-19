@@ -6,6 +6,7 @@ import Dashboard from './components/Dashboard/Dashboard';
 import Tasks from './components/Tasks/Tasks';
 import Assets from './components/Assets/Assets';
 import Milestones from './components/Milestones/Milestones';
+import Classes from './components/Classes/Classes';
 import Modal from './components/Modal/Modal';
 import Toast from './components/Toast/Toast';
 import './App.css';
@@ -48,7 +49,8 @@ function AppContent() {
           {currentSection === 'tasks' && <Tasks />}
           {currentSection === 'assets' && <Assets />}
           {currentSection === 'milestones' && <Milestones />}
-          {!['dashboard', 'tasks', 'assets', 'milestones'].includes(currentSection) && (
+          {currentSection === 'classes' && <Classes />}
+          {!['dashboard', 'tasks', 'assets', 'milestones', 'classes'].includes(currentSection) && (
             <div className="section-placeholder">
               <p>The {SECTION_LABELS[currentSection] || currentSection} section is coming soon.</p>
             </div>

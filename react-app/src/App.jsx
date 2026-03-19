@@ -2,6 +2,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import { ModalProvider } from './context/ModalContext';
 import { ToastProvider } from './context/ToastContext';
 import Sidebar from './components/Sidebar/Sidebar';
+import Dashboard from './components/Dashboard/Dashboard';
 import Modal from './components/Modal/Modal';
 import Toast from './components/Toast/Toast';
 import './App.css';
@@ -40,9 +41,13 @@ function AppContent() {
               </p>
             </div>
           </header>
-          <div className="section-placeholder">
-            <p>The {SECTION_LABELS[currentSection] || currentSection} section is coming soon.</p>
-          </div>
+          {currentSection === 'dashboard' ? (
+            <Dashboard />
+          ) : (
+            <div className="section-placeholder">
+              <p>The {SECTION_LABELS[currentSection] || currentSection} section is coming soon.</p>
+            </div>
+          )}
         </section>
       </main>
       <Modal />

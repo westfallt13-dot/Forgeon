@@ -1,121 +1,64 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { AppProvider, useApp } from './context/AppContext';
+import { ModalProvider } from './context/ModalContext';
+import { ToastProvider } from './context/ToastContext';
+import Sidebar from './components/Sidebar/Sidebar';
+import Modal from './components/Modal/Modal';
+import Toast from './components/Toast/Toast';
+import './App.css';
 
-function App() {
-  const [count, setCount] = useState(0)
+const SECTION_LABELS = {
+  dashboard: 'Dashboard',
+  tasks: 'Tasks',
+  assets: 'Assets',
+  milestones: 'Milestones',
+  classes: 'Classes',
+  mechanics: 'Mechanics',
+  story: 'Story',
+  notes: 'Notes',
+};
+
+function AppContent() {
+  const { currentSection } = useApp();
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    <div className="app-container">
+      <Sidebar />
+      <main className="main-content" role="main">
+        <section className="content-section active">
+          <header className="section-header">
+            <div>
+              <h2>{SECTION_LABELS[currentSection] || currentSection}</h2>
+              <p className="section-description">
+                {currentSection === 'dashboard' && 'Overview of your game development project'}
+                {currentSection === 'tasks' && 'Manage your development tasks'}
+                {currentSection === 'assets' && 'Track your game assets'}
+                {currentSection === 'milestones' && 'Set and track project milestones'}
+                {currentSection === 'classes' && 'Define your game classes'}
+                {currentSection === 'mechanics' && 'Design game mechanics'}
+                {currentSection === 'story' && 'Build your game narrative'}
+                {currentSection === 'notes' && 'Capture your ideas and notes'}
+              </p>
+            </div>
+          </header>
+          <div className="section-placeholder">
+            <p>The {SECTION_LABELS[currentSection] || currentSection} section is coming soon.</p>
+          </div>
+        </section>
+      </main>
+      <Modal />
+      <Toast />
+    </div>
+  );
 }
 
-export default App
+export default function App() {
+  return (
+    <AppProvider>
+      <ModalProvider>
+        <ToastProvider>
+          <AppContent />
+        </ToastProvider>
+      </ModalProvider>
+    </AppProvider>
+  );
+}

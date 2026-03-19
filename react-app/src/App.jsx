@@ -3,6 +3,7 @@ import { ModalProvider } from './context/ModalContext';
 import { ToastProvider } from './context/ToastContext';
 import Sidebar from './components/Sidebar/Sidebar';
 import Dashboard from './components/Dashboard/Dashboard';
+import Tasks from './components/Tasks/Tasks';
 import Modal from './components/Modal/Modal';
 import Toast from './components/Toast/Toast';
 import './App.css';
@@ -41,9 +42,9 @@ function AppContent() {
               </p>
             </div>
           </header>
-          {currentSection === 'dashboard' ? (
-            <Dashboard />
-          ) : (
+          {currentSection === 'dashboard' && <Dashboard />}
+          {currentSection === 'tasks' && <Tasks />}
+          {!['dashboard', 'tasks'].includes(currentSection) && (
             <div className="section-placeholder">
               <p>The {SECTION_LABELS[currentSection] || currentSection} section is coming soon.</p>
             </div>

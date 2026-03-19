@@ -1,0 +1,360 @@
+/* ── Mechanics Section ─────────────────────────────────────────────────────── */
+
+.mechanics-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ── Toolbar ──────────────────────────────────────────────────────────────── */
+
+.mechanics-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* ── Filter / Sort Bar ────────────────────────────────────────────────────── */
+
+.mechanics-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.mechanics-filters .filter-select {
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 6px;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #1f2937);
+  font-size: 0.85rem;
+  min-width: 150px;
+}
+
+.mechanics-filters .filter-search {
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 6px;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #1f2937);
+  font-size: 0.85rem;
+  flex: 1;
+  min-width: 180px;
+}
+
+/* ── Cards Grid ───────────────────────────────────────────────────────────── */
+
+.mechanics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1rem;
+}
+
+/* ── Card ─────────────────────────────────────────────────────────────────── */
+
+.mechanic-card {
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.mechanic-card:hover {
+  border-color: var(--primary-color, #6366f1);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Card header */
+.mechanic-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.mechanic-card-title-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.mechanic-card-name {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--text-primary, #1f2937);
+  word-break: break-word;
+}
+
+/* Badges */
+.mechanic-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.mechanic-badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.category-badge {
+  color: #fff;
+}
+
+/* Status badges */
+.status-badge {
+  border: 1px solid transparent;
+}
+
+.status-badge.status-concept {
+  background: #f3f4f6;
+  color: #6b7280;
+  border-color: #d1d5db;
+}
+
+.status-badge.status-in-development {
+  background: #dbeafe;
+  color: #2563eb;
+  border-color: #93c5fd;
+}
+
+.status-badge.status-testing {
+  background: #fef3c7;
+  color: #d97706;
+  border-color: #fcd34d;
+}
+
+.status-badge.status-complete {
+  background: #d1fae5;
+  color: #059669;
+  border-color: #6ee7b7;
+}
+
+/* Complexity badges */
+.complexity-badge {
+  border: 1px solid transparent;
+}
+
+.complexity-badge.complexity-simple {
+  background: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
+}
+
+.complexity-badge.complexity-moderate {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+.complexity-badge.complexity-complex {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+/* Card actions */
+.mechanic-card-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+/* Description */
+.mechanic-card-description {
+  margin: 0;
+  color: var(--text-secondary, #6b7280);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+/* Rules */
+.mechanic-card-rules {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #6b7280);
+  background: var(--bg-secondary, #f9fafb);
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+}
+
+.mechanic-card-rules strong {
+  color: var(--text-primary, #1f2937);
+}
+
+.mechanic-card-rules p {
+  margin: 0.25rem 0 0;
+  white-space: pre-wrap;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--primary-color, #6366f1);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0;
+  margin-top: 0.25rem;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+
+/* Test summary */
+.mechanic-card-tests {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.test-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.test-pass {
+  color: #059669;
+}
+
+.test-fail {
+  color: #dc2626;
+}
+
+.test-pending {
+  color: #d97706;
+}
+
+/* ── Empty state ──────────────────────────────────────────────────────────── */
+
+.mechanics-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-secondary, #9ca3af);
+  font-size: 0.95rem;
+}
+
+/* ── Form (inside modal) ──────────────────────────────────────────────────── */
+
+.mechanic-form {
+  max-width: 700px;
+}
+
+.mechanic-form h3 {
+  margin: 0 0 1.25rem;
+  font-size: 1.25rem;
+  color: var(--text-primary, #1f2937);
+}
+
+.mechanic-form .form-group {
+  margin-bottom: 1rem;
+}
+
+.mechanic-form label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 0.3rem;
+  color: var(--text-primary, #1f2937);
+}
+
+.mechanic-form input[type='text'],
+.mechanic-form select,
+.mechanic-form textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 6px;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #1f2937);
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.mechanic-form textarea {
+  resize: vertical;
+}
+
+.mechanic-form .form-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.mechanic-form .form-row .form-group {
+  flex: 1;
+}
+
+.mechanic-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+/* Dynamic rows for tests / prototypes */
+.dynamic-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.dynamic-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.dynamic-row input[type='text'],
+.dynamic-row select {
+  flex: 1;
+  min-width: 0;
+}
+
+.dynamic-row textarea {
+  flex: 2;
+  min-width: 0;
+}
+
+.prototype-row {
+  flex-wrap: wrap;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 700px) {
+  .mechanics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mechanic-form .form-row {
+    flex-direction: column;
+  }
+
+  .mechanic-card-header {
+    flex-direction: column;
+  }
+
+  .mechanics-filters {
+    flex-direction: column;
+  }
+
+  .mechanics-filters .filter-search,
+  .mechanics-filters .filter-select {
+    width: 100%;
+  }
+}

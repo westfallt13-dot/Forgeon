@@ -114,7 +114,7 @@ Get-FileHash "Forgeon-Game-Planner-1.0.0-Windows-x64.zip" -Algorithm SHA256
 
 ## 📋 What's Included
 
-- Complete desktop application (Electron-based)
+- Complete desktop application (native C++ with GTK3 + WebKit2GTK)
 - All features fully functional
 - Local data storage (no cloud required)
 - Custom icon and branding
@@ -165,7 +165,7 @@ See [LICENSE](https://github.com/beachfall/Forgeon/blob/main/LICENSE) for full t
 ## 🙏 Credits
 
 **Developed by**: Thomas Westfall  
-**Built with**: Electron, Node.js, IndexedDB
+**Built with**: C++17, GTK3, WebKit2GTK, IndexedDB
 
 ---
 

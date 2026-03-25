@@ -7,7 +7,7 @@
 **Framework:** Vanilla JavaScript (No framework dependencies)  
 **Styling:** CSS3 with CSS Variables for light/dark theme support  
 **Storage:** LocalStorage + IndexedDB for data persistence  
-**Desktop:** Electron wrapper for standalone application  
+**Desktop:** Native C++ application (GTK3 + WebKit2GTK)  
 
 ---
 

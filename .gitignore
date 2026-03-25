@@ -25,3 +25,12 @@ npm-debug.log*
 
 # Local models (optional - if you want to exclude large model files)
 models/*.gguf
+
+# C++ build artifacts
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.o
+*.so
+*.a

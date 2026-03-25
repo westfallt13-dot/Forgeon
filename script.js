@@ -4,13 +4,14 @@
    ================================= */
 
 // ============================================
-// Electron Integration
+// Desktop Integration
 // ============================================
-// Detects whether the app is running in Electron (desktop) or browser mode
-// Allows conditional logic for platform-specific features (file system access, etc)
+// Detects whether the app is running in a native desktop shell or browser mode.
+// The C++ shell injects window.electronAPI via a WebKit user script, providing
+// the same API surface as the previous Electron preload.
 const isElectron = typeof window.electronAPI !== 'undefined';
 
-console.log(`Running in ${isElectron ? 'Electron' : 'Browser'} mode`);
+console.log(`Running in ${isElectron ? 'Desktop' : 'Browser'} mode`);
 
 // ============================================
 // Project Manager

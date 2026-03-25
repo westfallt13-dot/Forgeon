@@ -91,6 +91,7 @@ Toggle between light and dark modes for comfortable viewing in any environment.
 ```bash
 sudo apt-get install build-essential cmake pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev
 ```
+> **Note:** On older distributions use `libwebkit2gtk-4.0-dev` and change `webkit2gtk-4.1` to `webkit2gtk-4.0` in `CMakeLists.txt`.
 
 **Linux (Fedora):**
 ```bash

@@ -17,6 +17,7 @@
 #include <webkit2/webkit2.h>
 #include <jsc/jsc.h>
 
+#include <climits>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -24,7 +25,6 @@
 #include <sstream>
 #include <string>
 #include <unistd.h>
-#include <linux/limits.h>
 #include <sys/stat.h>
 
 static const char* APP_VERSION = "1.0.0";
@@ -38,6 +38,11 @@ static GtkWidget*     g_main_window = nullptr;
 // ---------------------------------------------------------------------------
 
 // Return the directory that contains the running executable.
+// Uses /proc/self/exe which is Linux-specific; other platforms would
+// need _NSGetExecutablePath (macOS) or GetModuleFileName (Windows).
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
 static std::string get_executable_directory() {
     char buf[PATH_MAX];
     ssize_t len = readlink("/proc/self/exe", buf, sizeof(buf) - 1);
@@ -177,12 +182,28 @@ static std::string json_get_string(const std::string& json, const std::string& k
     if (pos == std::string::npos) return "";
     pos = json.find('"', pos + 1);
     if (pos == std::string::npos) return "";
-    auto end = pos + 1;
-    while (end < json.size() && json[end] != '"') {
-        if (json[end] == '\\') end++; // skip escaped char
-        end++;
+    // Walk past the opening quote and collect unescaped characters.
+    std::string result;
+    for (auto i = pos + 1; i < json.size(); ++i) {
+        if (json[i] == '"') break;
+        if (json[i] == '\\' && i + 1 < json.size()) {
+            ++i;
+            switch (json[i]) {
+                case '"':  result += '"';  break;
+                case '\\': result += '\\'; break;
+                case '/':  result += '/';  break;
+                case 'b':  result += '\b'; break;
+                case 'f':  result += '\f'; break;
+                case 'n':  result += '\n'; break;
+                case 'r':  result += '\r'; break;
+                case 't':  result += '\t'; break;
+                default:   result += json[i]; break;
+            }
+        } else {
+            result += json[i];
+        }
     }
-    return json.substr(pos + 1, end - pos - 1);
+    return result;
 }
 
 static int json_get_int(const std::string& json, const std::string& key) {

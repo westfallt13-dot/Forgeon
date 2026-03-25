@@ -65,21 +65,68 @@ Toggle between light and dark modes for comfortable viewing in any environment.
 
 ## Getting Started
 
-1. Open `index.html` in a modern web browser (Chrome, Firefox, Edge, Safari)
-2. Start creating your game development project
-3. Use the navigation menu to access different sections
-4. Export your work regularly to create backups
+1. Install the build prerequisites (see **Building from Source** above)
+2. Build the application: `cmake -B build && cmake --build build`
+3. Run: `./build/forgeon`
+4. Start creating your game development project
+5. Use the navigation menu to access different sections
+6. Export your work regularly to create backups
 
 ## Technologies Used
 
-- **HTML5** - Structure and markup
+- **C++17** - Native desktop application shell (GTK3 + WebKit2GTK)
+- **CMake** - Build system
+- **HTML5** - UI structure and markup
 - **CSS3** - Styling and animations
 - **Vanilla JavaScript** - Application logic
 - **IndexedDB** - File storage
 - **LocalStorage** - Application state
 - **JSZip** - Export/import functionality
 
-## Browser Compatibility
+## Building from Source
+
+### Prerequisites
+
+**Linux (Ubuntu/Debian):**
+```bash
+sudo apt-get install build-essential cmake pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev
+```
+> **Note:** On older distributions use `libwebkit2gtk-4.0-dev` and change `webkit2gtk-4.1` to `webkit2gtk-4.0` in `CMakeLists.txt`.
+
+**Linux (Fedora):**
+```bash
+sudo dnf install gcc-c++ cmake pkgconfig gtk3-devel webkit2gtk4.1-devel
+```
+
+**Linux (Arch):**
+```bash
+sudo pacman -S base-devel cmake gtk3 webkit2gtk-4.1
+```
+
+### Build
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+```
+
+### Run
+
+```bash
+./build/forgeon
+```
+
+### Install (optional)
+
+```bash
+sudo cmake --install build --prefix /usr/local
+```
+
+## Browser Mode
+
+The application can also be opened directly in a modern web browser by loading
+`index.html`. Browser mode supports the same features but uses browser-native
+file dialogs instead of the native GTK dialogs provided by the C++ shell.
 
 Works best in modern browsers with support for:
 - ES6+ JavaScript
@@ -89,12 +136,13 @@ Works best in modern browsers with support for:
 
 ## Development
 
-This is a client-side only application with no backend dependencies. All files are static and can be served from any web server or opened directly in a browser.
-
 ### Project Structure
 ```
 Forgeon/
-├── index.html          # Main application file
+├── CMakeLists.txt      # C++ build configuration
+├── src/
+│   └── main.cpp        # Native application entry point (GTK3 + WebKit2GTK)
+├── index.html          # Main application UI
 ├── script.js           # Application logic
 ├── style.css           # Styles and theming
 └── icons/              # SVG icon library

@@ -1,26 +1,20 @@
 {
   "name": "forgeon-game-planner",
   "version": "1.0.0",
-  "description": "A comprehensive game development planning tool with AI assistance",
-  "main": "main.js",
+  "description": "A comprehensive game development planning tool — native C++ desktop application",
   "scripts": {
-    "start": "electron .",
-    "build": "electron-builder",
-    "build:win": "electron-builder --win",
-    "build:win-msi": "electron-builder --win msi",
-    "build:win-all": "electron-builder --win nsis portable msi",
-    "build:mac": "electron-builder --mac",
-    "build:linux": "electron-builder --linux",
-    "build:all": "electron-builder -mwl",
-    "pack:win": "electron-packager . \"Forgeon Game Planner\" --platform=win32 --arch=x64 --out=build --overwrite --icon=icons/application/icon.ico --app-version=1.0.0",
-    "msi": "node build-msi.js"
+    "configure": "cmake -B build -DCMAKE_BUILD_TYPE=Release",
+    "build": "cmake --build build",
+    "start": "./build/forgeon",
+    "clean": "rm -rf build"
   },
   "keywords": [
     "game",
     "development",
     "planning",
-    "ai",
-    "assistant"
+    "cpp",
+    "gtk",
+    "webkit"
   ],
   "author": {
     "name": "Thomas Westfall",
@@ -35,68 +29,5 @@
   "bugs": {
     "url": "https://github.com/beachfall/Forgeon/issues",
     "email": "westfallt13@gmail.com"
-  },
-  "devDependencies": {
-    "electron": "^39.1.1",
-    "electron-builder": "^24.9.1",
-    "electron-packager": "^17.1.2",
-    "electron-wix-msi": "^5.1.3"
-  },
-  "build": {
-    "appId": "com.forgeon.gameplanner",
-    "productName": "Forgeon Game Planner",
-    "directories": {
-      "output": "build"
-    },
-    "files": [
-      "**/*",
-      "!node_modules/**/*",
-      "!dist/**/*",
-      "!build/**/*",
-      "!.git/**/*",
-      "!**/.DS_Store"
-    ],
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "msi",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "icons/application/icon.ico",
-      "artifactName": "${productName}-${version}-${arch}.${ext}",
-      "signingHashAlgorithms": [
-        "sha256"
-      ],
-      "sign": null
-    },
-    "mac": {
-      "target": "dmg",
-      "icon": "icons/application/512x512.png",
-      "category": "public.app-category.developer-tools"
-    },
-    "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ],
-      "icon": "icons/application/512x512.png",
-      "category": "Development"
-    }
-  },
-  "dependencies": {}
+  }
 }
